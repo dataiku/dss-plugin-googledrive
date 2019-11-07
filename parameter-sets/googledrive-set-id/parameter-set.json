@@ -1,0 +1,19 @@
+{
+    "meta" : {
+        "label": "Google Drive connection",
+        "description": "",
+        // icon: must be one of the FontAwesome 3.2.1 icons, complete list here at https://fontawesome.com/v3.2.1/icons/
+        "icon": "icon-google-plus-sign"
+    },
+    "defaultDefinableInline": true,
+    "defaultDefinableAtProjectLevel": true,
+    "pluginParams": [
+        {
+            "name": "credentials",
+            "label": "Access credentials",
+            "type": "TEXTAREA",
+            "description": "Generated on Google for use in DSS",
+            "mandatory": true
+        }
+    ]
+}
