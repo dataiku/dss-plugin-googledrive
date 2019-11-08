@@ -191,7 +191,7 @@ class GoogleDriveFSProvider(FSProvider):
             query = self.query_parents_in(parent_ids, name_contains = token, trashed = False) # could then filter with token
             files = self.googledrive_list(query)
             files = self.keep_files_with(files, name_starting_with=token)
-            ##files = self.unflat_directories(parent_ids[0], files, root_path = token) #Todo: should have only one parentid
+            ##files = self.unflat_directories(parent_ids[0], files, root_path = token)
             files = self.keep_files_with(files, name=token) # we only keep files / parent_ids for names = current token for the next loop
             
             if len(files) == 0:
@@ -358,7 +358,6 @@ class GoogleDriveFSProvider(FSProvider):
         return paths
 
     def substract_path_base(self, base, path):
-        # Todo: check on unicode paths
         return re.sub(r'^' + base + r'([a-zA-Z0-9\-_/\.]+)', r'\1', path)
 
     def list_recursive(self, path, folder, first_non_empty):
@@ -366,7 +365,7 @@ class GoogleDriveFSProvider(FSProvider):
         if path == "/":
             path = ""
         children = self.directory(folder, root_path = self.get_rel_path(path))
-        for child in children: #todo: root_path ?
+        for child in children:
             if self.is_directory(child):
                 paths.extend(self.list_recursive(path + '/' + self.get_name(child), child, first_non_empty))
             else:

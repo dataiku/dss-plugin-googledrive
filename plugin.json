@@ -4,7 +4,7 @@
     "meta": {
         "label": "Googledrive",
         "description": "Read and write data from/to your Google Drive account",
-        "author": "Alexandre Bourret",
+        "author": "Dataiku (Alex Bourret)",
         "icon": "icon-google-plus-sign",
         "tags": [
             "Connector",
