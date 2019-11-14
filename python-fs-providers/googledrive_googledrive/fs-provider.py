@@ -13,6 +13,7 @@ from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 from random import randrange
 from time import sleep
+from datetime import datetime
 
 from StringIO import StringIO ## for Python 2
 try:
@@ -92,10 +93,20 @@ class GoogleDriveFSProvider(FSProvider):
         if item is None:
             return None
 
-        if self.is_directory(item):
-            return {'path': self.get_normalized_path(path), 'size':0, 'lastModified': 0, 'isDirectory':True}
+        return {'path': self.get_normalized_path(path), 'size': self.file_size(item), 'lastModified': self.get_last_modified(item), 'isDirectory': self.is_directory(item)}
+
+    def get_last_modified(self, item):
+        if "modifiedTime" in item:
+            return int(self.format_date(item["modifiedTime"]))
+        return
+
+    def format_date(self, date):
+        if date is not None:
+            utc_time = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
+            epoch_time = (utc_time - datetime(1970, 1, 1)).total_seconds()
+            return int(epoch_time) * 1000
         else:
-            return {'path': self.get_normalized_path(path), 'size': self.file_size(item), 'isDirectory': False}
+            return None
 
     def set_last_modified(self, path, last_modified):
         """
@@ -114,7 +125,7 @@ class GoogleDriveFSProvider(FSProvider):
         if item is None:
             return {'fullPath' : None, 'exists' : False}
         if self.is_file(item):
-            return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : False, 'size' : self.file_size(item)}
+            return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : False, 'size' : self.file_size(item), 'lasModified' : self.get_last_modified(item)}
         children = []
 
         files = self.directory(item, root_path=self.get_rel_path(full_path))
@@ -124,10 +135,11 @@ class GoogleDriveFSProvider(FSProvider):
                 'fullPath' : sub_path, #self.get_normalized_path(path + '/' + self.get_name(file)),
                 'exists' : True,
                 'directory' : self.is_directory(file),
-                'size' : self.file_size(file)
+                'size' : self.file_size(file),
+                'lastModified' : self.get_last_modified(file)
             })
         
-        return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children}
+        return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children, 'lasModified' : self.get_last_modified(file)}
 
     def filter_no_dir_file(self, item):
         if self.is_nodir_file(item):
@@ -341,7 +353,7 @@ class GoogleDriveFSProvider(FSProvider):
                 return None
             paths = []
             for file in files:
-                paths.append({'path':self.get_normalized_path(self.get_name(file)), 'size':file['size'], 'lastModified':0})
+                paths.append({'path':self.get_normalized_path(self.get_name(file)), 'size':file['size'], 'lastModified':self.get_last_modified(file)})
             if len(files) > 0:
                 item = {u'mimeType': u'application/vnd.google-apps.folder', u'size': u'0', u'id': full_path, u'name': u'root'}
             return paths
@@ -350,7 +362,7 @@ class GoogleDriveFSProvider(FSProvider):
             return None
 
         if self.is_file(item):
-            return [{'path':self.get_normalized_path(path), 'size':self.file_size(item)}]
+            return [{'path':self.get_normalized_path(path), 'size':self.file_size(item), 'lastModified':self.get_last_modified(item)}]
 
         paths = []
         paths = self.list_recursive(path, item, first_non_empty)
@@ -369,7 +381,7 @@ class GoogleDriveFSProvider(FSProvider):
             if self.is_directory(child):
                 paths.extend(self.list_recursive(path + '/' + self.get_name(child), child, first_non_empty))
             else:
-                paths.append({'path':path + '/' + self.get_name(child), 'size':self.file_size(child)})
+                paths.append({'path':path + '/' + self.get_name(child), 'size':self.file_size(child), 'lastModified':self.get_last_modified(child)})
                 if first_non_empty:
                     return paths
         return paths
@@ -512,7 +524,8 @@ class GoogleDriveFSProvider(FSProvider):
                                     media_body=media)
 
     def googledrive_list(self, query):
-        fields = "nextPageToken, files(id, name, size, parents, mimeType, createdTime)"
+        fields = "nextPageToken, files(id, name, size, parents, mimeType, createdTime, modifiedTime)"
+
         attempts = 0
         while attempts < self.max_attempts:
             try:
