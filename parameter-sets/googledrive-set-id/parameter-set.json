@@ -11,7 +11,7 @@
         {
             "name": "credentials",
             "label": "Access credentials",
-            "type": "TEXTAREA",
+            "type": "PASSWORD",
             "description": "Generated on Google for use in DSS",
             "mandatory": true
         }

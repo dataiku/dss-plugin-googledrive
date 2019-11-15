@@ -1,9 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from dataiku.fsprovider import FSProvider
 
-import os, shutil, re, logging, json
+import os, shutil, re, logging, json, string
 
 from apiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
@@ -53,6 +50,7 @@ class GoogleDriveFSProvider(FSProvider):
         if self.root_id is None:
             self.root_id = 'root'
         self.max_attempts = 5
+        self.check_path_format(self.get_normalized_path(self.root))
         credentials_dict = eval(connection['credentials'])
         credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scopes)
         http_auth = credentials.authorize(Http())
@@ -200,8 +198,6 @@ class GoogleDriveFSProvider(FSProvider):
             if len(files) == 0:
                 return None
             parent_ids = self.get_files_ids(files)
-        if len(files)>1:
-            raise Exception("There are several files with this path.")
         return files[0]
 
     def directory(self, item, root_path = None):
@@ -537,3 +533,17 @@ class GoogleDriveFSProvider(FSProvider):
             if err.resp.get('content-type', '').startswith('application/json'):
                 reason = json.loads(err.content).get('error').get('errors')[0].get('reason')
             raise Exception("Googledrive " + context + " error : " + reason)
+
+    def check_path_format(self, path):
+        special_names = [".",".."]
+        if not all(c in string.printable for c in path):
+            raise Exception('The path contains non-printable char(s)')
+        for element in path.split('/'):
+            if len(element) > 1024:
+                raise Exception('An element of the path is longer than the allowed 1024 characters')
+            if element in special_names:
+                raise Exception('Special name "{0}" is not allowed in a box.com path'.format(element))
+            if element.endswith(' '):
+                raise Exception('An element of the path contains a trailing space')
+            if element.startswith('.well-known/acme-challenge'):
+                raise Exception('An element of the path starts with ".well-known/acme-challenge"')
