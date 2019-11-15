@@ -2,7 +2,7 @@
 
 This plugin provides a read / write connector to interact with documents stored on [GoogleDrive](https://drive.google.com).
 
-## How to use
+## How to set up
 
 In order to use the plugin, you will need service account's credentials exported in a JSON file with the Drive API enabled.
 
@@ -47,7 +47,7 @@ In order to use the plugin, you will need service account's credentials exported
 ![](img/dss-dataset.png)
 
 - Click Googledrive Filesystem
-- Pick the right preset, and In *ID of root directory*, paste the previously copied directory ID
+- Pick the right preset, and in *ID of root directory*, paste the previously copied directory ID
 
 ![](img/dss-setup-dataset.png)
 

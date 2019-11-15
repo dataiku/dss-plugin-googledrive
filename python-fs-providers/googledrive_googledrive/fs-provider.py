@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from dataiku.fsprovider import FSProvider
 
 import os, shutil, re, logging, json
@@ -69,7 +72,8 @@ class GoogleDriveFSProvider(FSProvider):
     def get_full_path(self, path):
         path_elts = [self.provider_root, self.get_rel_path(self.root), self.get_rel_path(path)]
         path_elts = [e for e in path_elts if len(e) > 0]
-        return os.path.join(*path_elts)
+        ret = os.path.join(*path_elts)
+        return ret
     def get_root_path(self):
         path_elts = [self.provider_root, self.get_rel_path(self.root)]
         path_elts = [e for e in path_elts if len(e) > 0]
@@ -118,7 +122,7 @@ class GoogleDriveFSProvider(FSProvider):
         """
         List the file or directory at the given path, and its children (if directory)
         """
-        full_path = self.get_full_path(path)
+        full_path = self.get_full_path(self.get_rel_path(path))
 
         item = self.get_item_from_path(full_path)
 
@@ -132,27 +136,14 @@ class GoogleDriveFSProvider(FSProvider):
         for file in files:
             sub_path = self.get_normalized_path(os.path.join(path, self.get_name(file)))
             children.append({
-                'fullPath' : sub_path, #self.get_normalized_path(path + '/' + self.get_name(file)),
+                'fullPath' : sub_path,
                 'exists' : True,
                 'directory' : self.is_directory(file),
                 'size' : self.file_size(file),
                 'lastModified' : self.get_last_modified(file)
             })
         
-        return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children, 'lasModified' : self.get_last_modified(file)}
-
-    def filter_no_dir_file(self, item):
-        if self.is_nodir_file(item):
-            ret = item
-            tokens = self.split_path(self.get_name(item))
-            ret['name'] = tokens[0]
-            ret['mimeType'] = "application/vnd.google-apps.folder"
-            return ret
-        else:
-            return item
-
-    def is_nodir_file(self, item):
-        return "/" in self.get_name(item)
+        return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children, 'lasModified' : self.get_last_modified(item)}
 
     # from http://helpful-nerd.com/2018/01/30/folder-and-directory-management-for-google-drive-using-python/
 
@@ -200,25 +191,23 @@ class GoogleDriveFSProvider(FSProvider):
             if token == '/':
                 token = ''
                 continue
-            query = self.query_parents_in(parent_ids, name_contains = token, trashed = False) # could then filter with token
+
+            query = self.query_parents_in(parent_ids, name_contains = token, trashed = False)
             files = self.googledrive_list(query)
             files = self.keep_files_with(files, name_starting_with=token)
-            ##files = self.unflat_directories(parent_ids[0], files, root_path = token)
             files = self.keep_files_with(files, name=token) # we only keep files / parent_ids for names = current token for the next loop
             
             if len(files) == 0:
-                #if len(flat_directories)>0:
-                #    ret = self.get_fake_directory(token, with_parent_id=parent_ids[0], with_id=parent_ids[0])
-                #    return ret
                 return None
             parent_ids = self.get_files_ids(files)
+        if len(files)>1:
+            raise Exception("There are several files with this path.")
         return files[0]
 
     def directory(self, item, root_path = None):
 
         query = self.query_parents_in([self.get_id(item)], trashed = False)
         files = self.googledrive_list(query)
-        ##files = self.unflat_directories(item['id'], files, root_path=root_path)
 
         return files
 
@@ -231,52 +220,6 @@ class GoogleDriveFSProvider(FSProvider):
             if name is not None:
                 if self.get_name(item) == name:
                     ret.append(item)
-        return ret
-
-    def unflat_directories(self, parent_id, files, root_path = None, browsed_item = None):
-        ret = []
-        flat_directories = set([])
-        for file in files:
-            if self.is_nodir_file(file):
-                if root_path is None:
-                    base = self.get_name(file)
-                else:
-                    if not self.get_name(file).startswith(root_path):
-                        continue
-                    base = self.substract_path_base(root_path, self.get_name(file))
-
-                tokens = self.split_path(base)
-                if tokens[0] not in flat_directories:
-                    if self.get_name(file).endswith(tokens[0]):
-                        ret.append(self.get_fake_file(tokens[0], with_id = self.get_id(file), with_parent_id=self.get_id(file)))
-                    else:
-                        ret.append(self.get_fake_directory(tokens[0], with_id = self.get_id(file), with_parent_id=self.get_id(file)))
-                flat_directories.add(tokens[0])
-            else:
-                ret.append(file)
-        return ret
-
-    def flat_directory_in_files(self, files):
-        flat_directories = []
-        for file in files:
-            if self.is_nodir_file(file):
-                flat_directories.append(files)
-        return flat_directories
-
-    def get_fake_directory(self, name, with_id = None, with_parent_id = None):
-        ret = {'mimeType':'application/vnd.google-apps.folder', 'name': name}
-        if with_id is not None:
-            ret['id'] = with_id
-        if with_parent_id is not None:
-            ret['parents'] = [with_parent_id]
-        return ret
-
-    def get_fake_file(self, name, with_id = None, with_parent_id = None):
-        ret = {'mimeType':'text/csv', 'name': name}
-        if with_id is not None:
-            ret['id'] = with_id
-        if with_parent_id is not None:
-            ret['parents'] = [with_parent_id]
         return ret
 
     def query_parents_in(self, parent_ids, name = None, name_contains = None, trashed = None):
@@ -308,7 +251,7 @@ class GoogleDriveFSProvider(FSProvider):
         
     def create_directory_from_path(self, path):
         tokens = self.split_path(path)
-        
+
         parent_ids = [self.root_id]
         current_path = ""
 
@@ -331,10 +274,7 @@ class GoogleDriveFSProvider(FSProvider):
         }
         file = self.googledrive_create(body=file_metadata)
         return self.get_id(file)
-        
-    def is_root(self, file):
-        return 'parents' not in file or len(file['parents']) == 0
-    
+
     def enumerate(self, path, first_non_empty):
         """
         Enumerate files recursively from prefix. If first_non_empty, stop at the first non-empty file.
@@ -458,19 +398,22 @@ class GoogleDriveFSProvider(FSProvider):
         if item is None:
             raise Exception('Path doesn t exist')
 
-        data = self.googledrive_download(item)
+        data = self.googledrive_download(item, stream)
 
-        file_handle = BytesIO()
-        file_handle.write(data)
-        file_handle.seek(0)
-        
-        shutil.copyfileobj(file_handle, stream)
-
-    def googledrive_download(self, item):
+    def googledrive_download(self, item, stream):
         if self.is_file_google_doc(item):
-            return self.drive.files().export_media(fileId = self.get_id(item), mimeType = "text/csv").execute()
+            data =  self.drive.files().export_media(fileId = self.get_id(item), mimeType = "text/csv").execute()
+            file_handle = BytesIO()
+            file_handle.write(data)
+            file_handle.seek(0)
+            shutil.copyfileobj(file_handle, stream)
         else:
-            return self.drive.files().get_media(fileId = self.get_id(item)).execute()
+            request =  self.drive.files().get_media(fileId = self.get_id(item))
+            downloader = MediaIoBaseDownload(stream, request, chunksize=1024*1024)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+
 
     def is_file_google_doc(self, file):
         return "google-apps" in file['mimeType']
@@ -506,6 +449,9 @@ class GoogleDriveFSProvider(FSProvider):
         if self.write_as_google_doc and guessed_type == "text/csv":
             file_metadata['mimeType'] = 'application/vnd.google-apps.spreadsheet'
 
+        if guessed_type is None:
+            guessed_type = "binary/octet-stream"
+
         media = MediaIoBaseUpload(file_handle,
                                 mimetype=guessed_type,
                                 resumable=True)
@@ -516,6 +462,7 @@ class GoogleDriveFSProvider(FSProvider):
         if len(files) == 0:
             if parent_id:
                 file_metadata['parents'] = [parent_id]
+
             file = self.googledrive_create(body=file_metadata,
                                     media_body=media)
         else:
