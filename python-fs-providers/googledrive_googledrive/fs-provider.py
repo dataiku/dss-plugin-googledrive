@@ -15,16 +15,10 @@ from random import randrange
 from time import sleep
 from datetime import datetime
 
-from StringIO import StringIO ## for Python 2
 try:
     from BytesIO import BytesIO ## for Python 2
 except ImportError:
     from io import BytesIO ## for Python 3
-
-try:
-    from FileIO import FileIO ## for Python 2
-except ImportError:
-    from io import FileIO ## for Python 3
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
