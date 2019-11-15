@@ -48,7 +48,7 @@ class GoogleDriveFSProvider(FSProvider):
         scopes = ['https://www.googleapis.com/auth/drive']
         connection = plugin_config.get("googledrive_connection")
         self.write_as_google_doc = config.get("googledrive_write_as_google_doc")
-        self.nodir_mode = config.get("googledrive_nodir_mode")
+        self.nodir_mode = False # Future development
         self.root_id = config.get("googledrive_root_id")
         if self.root_id is None:
             self.root_id = 'root'
@@ -117,7 +117,7 @@ class GoogleDriveFSProvider(FSProvider):
         Set the modification time on the object denoted by path. Return False if not possible
         """
         return False
-        
+
     def browse(self, path):
         """
         List the file or directory at the given path, and its children (if directory)
@@ -186,7 +186,7 @@ class GoogleDriveFSProvider(FSProvider):
         if len(tokens) == 1:
             return {u'mimeType': u'application/vnd.google-apps.folder', u'size': u'0', u'id': self.root_id, u'name': u'/'}
         parent_ids = [self.root_id]
-        
+
         for token in tokens:
             if token == '/':
                 token = ''
@@ -196,7 +196,7 @@ class GoogleDriveFSProvider(FSProvider):
             files = self.googledrive_list(query)
             files = self.keep_files_with(files, name_starting_with=token)
             files = self.keep_files_with(files, name=token) # we only keep files / parent_ids for names = current token for the next loop
-            
+
             if len(files) == 0:
                 return None
             parent_ids = self.get_files_ids(files)
@@ -248,7 +248,7 @@ class GoogleDriveFSProvider(FSProvider):
 
     def remove_duplicates(self, to_filter):
         return list(set(to_filter))
-        
+
     def create_directory_from_path(self, path):
         tokens = self.split_path(path)
 
@@ -284,7 +284,7 @@ class GoogleDriveFSProvider(FSProvider):
         full_path = self.get_full_path(path)
 
         item = self.get_item_from_path(full_path)
-        
+
         if item is None:
             no_directory_item = self.get_item_from_path(self.get_root_path())
             query = self.query_parents_in([self.get_id(no_directory_item)], name_contains = self.get_rel_path(path), trashed = False)
@@ -334,7 +334,7 @@ class GoogleDriveFSProvider(FSProvider):
         deleted_item_count = 0
 
         folder = self.get_item_from_path(full_path)
-        
+
         if self.is_directory(folder):
             
             if folder is None or "parents" not in folder:
@@ -350,7 +350,7 @@ class GoogleDriveFSProvider(FSProvider):
             deleted_item_count = deleted_item_count + 1
             
         return deleted_item_count
-            
+
     def move(self, from_path, to_path):
         """
         Move a file or folder to a new path inside the provider's root. Return false if the moved file didn't exist
@@ -392,7 +392,7 @@ class GoogleDriveFSProvider(FSProvider):
         Read the object denoted by path into the stream. Limit is an optional bound on the number of bytes to send
         """
         full_path = self.get_full_path(path)
-        
+
         item = self.get_item_from_path(full_path)
 
         if item is None:
@@ -413,7 +413,6 @@ class GoogleDriveFSProvider(FSProvider):
             done = False
             while done is False:
                 status, done = downloader.next_chunk()
-
 
     def is_file_google_doc(self, file):
         return "google-apps" in file['mimeType']

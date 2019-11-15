@@ -23,12 +23,6 @@
             "label": "Save dataset as Google Doc",
             "type": "BOOLEAN",
             "default": false
-        },
-        {
-            "name": "googledrive_nodir_mode",
-            "label": "Save datasets in a no directory mode",
-            "type": "BOOLEAN",
-            "default": true
         }
     ]
 }
