@@ -35,7 +35,6 @@ class GoogleDriveFSProvider(FSProvider):
             root = root[1:]
         self.root = root
         self.provider_root = "/"
-        #self.scopes = ['https://www.googleapis.com/auth/drive.readonly']
         scopes = ['https://www.googleapis.com/auth/drive']
         connection = plugin_config.get("googledrive_connection")
         self.write_as_google_doc = config.get("googledrive_write_as_google_doc")
@@ -79,7 +78,7 @@ class GoogleDriveFSProvider(FSProvider):
 
     def stat(self, path):
         """
-        Get the info about the object at the given path inside the provider's root, or None 
+        Get the info about the object at the given path inside the provider's root, or None
         if the object doesn't exist
         """
         full_path = self.get_full_path(path)
@@ -134,7 +133,7 @@ class GoogleDriveFSProvider(FSProvider):
                 'size' : self.file_size(file),
                 'lastModified' : self.get_last_modified(file)
             })
-        
+
         return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children, 'lasModified' : self.get_last_modified(item)}
 
     # from http://helpful-nerd.com/2018/01/30/folder-and-directory-management-for-google-drive-using-python/
@@ -268,7 +267,7 @@ class GoogleDriveFSProvider(FSProvider):
     def enumerate(self, path, first_non_empty):
         """
         Enumerate files recursively from prefix. If first_non_empty, stop at the first non-empty file.
-        
+
         If the prefix doesn't denote a file or folder, return None
         """
         full_path = self.get_full_path(path)
@@ -326,7 +325,7 @@ class GoogleDriveFSProvider(FSProvider):
         folder = self.get_item_from_path(full_path)
 
         if self.is_directory(folder):
-            
+
             if folder is None or "parents" not in folder:
                 return deleted_item_count
             else:
@@ -338,7 +337,7 @@ class GoogleDriveFSProvider(FSProvider):
         else:
             self.googledrive_delete(folder)
             deleted_item_count = deleted_item_count + 1
-            
+
         return deleted_item_count
 
     def move(self, from_path, to_path):

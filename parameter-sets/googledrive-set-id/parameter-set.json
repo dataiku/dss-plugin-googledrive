@@ -2,8 +2,7 @@
     "meta" : {
         "label": "Google Drive connection",
         "description": "",
-        // icon: must be one of the FontAwesome 3.2.1 icons, complete list here at https://fontawesome.com/v3.2.1/icons/
-        "icon": "icon-google-plus-sign"
+        "icon": "icon-file-alt"
     },
     "defaultDefinableInline": true,
     "defaultDefinableAtProjectLevel": true,

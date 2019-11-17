@@ -2,8 +2,7 @@
     "meta" : {
         "label": "Google Drive",
         "description": "Read and write data from/to your Google Drive account",
-        // icon: must be one of the FontAwesome 3.2.1 icons, complete list here at https://fontawesome.com/v3.2.1/icons/
-        "icon": "icon-google-plus-sign"
+        "icon": "icon-file-alt"
     },
     "params": [
         {
@@ -15,14 +14,12 @@
         {
             "name": "googledrive_root_id",
             "label": "ID of root directory",
-            "type": "STRING",
-            "default": ""
+            "type": "STRING"
         },
         {
             "name": "googledrive_write_as_google_doc",
             "label": "Save dataset as Google Doc",
-            "type": "BOOLEAN",
-            "default": false
+            "type": "BOOLEAN"
         }
     ]
 }
