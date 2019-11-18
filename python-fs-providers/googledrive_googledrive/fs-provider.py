@@ -5,7 +5,7 @@ import os, shutil, re, logging, json, string
 from apiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 from httplib2 import Http
-from urllib2 import HTTPError
+#from urllib2 import HTTPError
 from apiclient import errors
 
 from mimetypes import MimeTypes
@@ -121,7 +121,7 @@ class GoogleDriveFSProvider(FSProvider):
         if item is None:
             return {'fullPath' : None, 'exists' : False}
         if self.is_file(item):
-            return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : False, 'size' : self.file_size(item), 'lasModified' : self.get_last_modified(item)}
+            return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : False, 'size' : self.file_size(item), 'lastModified' : self.get_last_modified(item)}
         children = []
 
         files = self.directory(item, root_path=self.get_rel_path(full_path))
@@ -135,7 +135,7 @@ class GoogleDriveFSProvider(FSProvider):
                 'lastModified' : self.get_last_modified(file)
             })
         
-        return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children, 'lasModified' : self.get_last_modified(item)}
+        return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children, 'lastModified' : self.get_last_modified(item)}
 
     # from http://helpful-nerd.com/2018/01/30/folder-and-directory-management-for-google-drive-using-python/
 
