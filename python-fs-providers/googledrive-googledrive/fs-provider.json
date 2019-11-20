@@ -1,0 +1,25 @@
+{
+    "meta" : {
+        "label": "Google Drive",
+        "description": "Read and write data from/to your Google Drive account",
+        "icon": "icon-file-alt"
+    },
+    "params": [
+        {
+            "name": "googledrive_connection",
+            "label": "Google Drive connection",
+            "type": "PRESET",
+            "parameterSetId": "googledrive-set-id"
+        },
+        {
+            "name": "googledrive_root_id",
+            "label": "ID of root directory",
+            "type": "STRING"
+        },
+        {
+            "name": "googledrive_write_as_google_doc",
+            "label": "Save dataset as Google Doc",
+            "type": "BOOLEAN"
+        }
+    ]
+}

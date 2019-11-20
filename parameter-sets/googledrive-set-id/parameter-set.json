@@ -1,0 +1,18 @@
+{
+    "meta" : {
+        "label": "Google Drive connection",
+        "description": "",
+        "icon": "icon-file-alt"
+    },
+    "defaultDefinableInline": true,
+    "defaultDefinableAtProjectLevel": true,
+    "pluginParams": [
+        {
+            "name": "credentials",
+            "label": "Access credentials",
+            "type": "PASSWORD",
+            "description": "Generated on Google for use in DSS",
+            "mandatory": true
+        }
+    ]
+}
