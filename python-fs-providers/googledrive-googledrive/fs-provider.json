@@ -13,12 +13,14 @@
         },
         {
             "name": "googledrive_root_id",
-            "label": "ID of root directory",
+            "label": "Drive directory ID",
+            "description": "Found after the last / of the shared folder's URL",
             "type": "STRING"
         },
         {
             "name": "googledrive_write_as_google_doc",
-            "label": "Save dataset as Google Doc",
+            "label": "Write parameter",
+            "description": "Use Google Sheets online format",
             "type": "BOOLEAN"
         }
     ]
