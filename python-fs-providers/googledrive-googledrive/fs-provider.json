@@ -6,10 +6,33 @@
     },
     "params": [
         {
+            "name": "auth_type",
+            "label": "Type of authentication",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "token",
+                    "label": "Access token"
+                },
+                {
+                    "value": "oauth",
+                    "label": "Google Single Sign On"
+                }
+            ]
+        },
+        {
             "name": "googledrive_connection",
             "label": "Google Drive connection",
             "type": "PRESET",
-            "parameterSetId": "googledrive-set-id"
+            "parameterSetId": "googledrive-set-id",
+            "visibilityCondition": "model.auth_type == 'token'"
+        },
+        {
+            "name": "oauth_credentials",
+            "label": "Google Single Sign On",
+            "type": "PRESET",
+            "parameterSetId": "oauth-credentials",
+            "visibilityCondition": "model.auth_type == 'oauth'"
         },
         {
             "name": "googledrive_root_id",

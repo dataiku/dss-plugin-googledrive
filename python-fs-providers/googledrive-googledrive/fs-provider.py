@@ -4,6 +4,7 @@ import os, shutil, re, logging, json, string
 
 from apiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
+from oauth2client.client import AccessTokenCredentials
 from httplib2 import Http
 from apiclient import errors
 
@@ -21,7 +22,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
-                    format='confluence plugin %(levelname)s - %(message)s')
+                    format='googledrive plugin %(levelname)s - %(message)s')
 
 class GoogleDriveFSProvider(FSProvider):
     def __init__(self, root, config, plugin_config):
@@ -36,16 +37,22 @@ class GoogleDriveFSProvider(FSProvider):
         self.provider_root = "/"
         scopes = ['https://www.googleapis.com/auth/drive']
         connection = plugin_config.get("googledrive_connection")
-        self.write_as_google_doc = config.get("googledrive_write_as_google_doc")
-        self.nodir_mode = False # Future development
+        self.auth_type = config.get("auth_type")
+        if self.auth_type == "oauth":
+            self.access_token = config.get("oauth_credentials")["access_token"]
+            credentials = AccessTokenCredentials(self.access_token, "dss-googledrive-plugin/2.0")
+            http_auth = credentials.authorize(Http())
+        else:
+            self.write_as_google_doc = config.get("googledrive_write_as_google_doc")
+            self.nodir_mode = False # Future development
+            self.check_path_format(self.get_normalized_path(self.root))
+            credentials_dict = eval(connection['credentials'])
+            credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scopes)
+            http_auth = credentials.authorize(Http())
         self.root_id = config.get("googledrive_root_id")
         if self.root_id is None:
             self.root_id = 'root'
         self.max_attempts = 5
-        self.check_path_format(self.get_normalized_path(self.root))
-        credentials_dict = eval(connection['credentials'])
-        credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scopes)
-        http_auth = credentials.authorize(Http())
         self.drive = build('drive', 'v3', http=http_auth)
 
     # util methods
@@ -81,6 +88,7 @@ class GoogleDriveFSProvider(FSProvider):
         if the object doesn't exist
         """
         full_path = self.get_full_path(path)
+        logger.info('stat:path="{}", full_path="{}"'.format(path, full_path))
 
         item = self.get_item_from_path(full_path)
 
@@ -113,6 +121,7 @@ class GoogleDriveFSProvider(FSProvider):
         List the file or directory at the given path, and its children (if directory)
         """
         full_path = self.get_full_path(self.get_rel_path(path))
+        logger.info('browse:path="{}", full_path="{}"'.format(path, full_path))
 
         item = self.get_item_from_path(full_path)
 
@@ -270,6 +279,7 @@ class GoogleDriveFSProvider(FSProvider):
         If the prefix doesn't denote a file or folder, return None
         """
         full_path = self.get_full_path(path)
+        logger.info('enumerate:path="{}", full_path="{}"'.format(path, full_path))
 
         item = self.get_item_from_path(full_path)
 
@@ -319,6 +329,8 @@ class GoogleDriveFSProvider(FSProvider):
         Delete recursively from path. Return the number of deleted files (optional)
         """
         full_path = self.get_full_path(path)
+        logger.info('delete_recursive:path="{}", full_path="{}"'.format(path, full_path))
+        self.assert_path_is_not_root(full_path)
         deleted_item_count = 0
 
         folder = self.get_item_from_path(full_path)
@@ -347,6 +359,7 @@ class GoogleDriveFSProvider(FSProvider):
         full_to_path = self.get_full_path(to_path)
         from_name = os.path.basename(from_path)
         to_name = os.path.basename(to_path)
+        logger.info('move:from "{}" to "{}"'.format(full_from_path, full_to_path))
 
         try:
             from_item = self.get_item_from_path(full_from_path)
@@ -380,6 +393,7 @@ class GoogleDriveFSProvider(FSProvider):
         Read the object denoted by path into the stream. Limit is an optional bound on the number of bytes to send
         """
         full_path = self.get_full_path(path)
+        logger.info('read:path="{}", full_path="{}"'.format(path, full_path))
 
         item = self.get_item_from_path(full_path)
 
@@ -411,6 +425,7 @@ class GoogleDriveFSProvider(FSProvider):
         """
         full_path = self.get_full_path(path)
         file_name = self.get_rel_path(path)
+        logger.info('write:path="{}", full_path="{}"'.format(path, full_path))
 
         folder = self.get_item_from_path(self.get_root_path())
         bio = BytesIO()
@@ -539,3 +554,9 @@ class GoogleDriveFSProvider(FSProvider):
                 raise Exception('An element of the path contains a trailing space')
             if element.startswith('.well-known/acme-challenge'):
                 raise Exception('An element of the path starts with ".well-known/acme-challenge"')
+
+    def assert_path_is_not_root(self, path):
+        black_list = [None, "", "root"]
+        if self.root_id in black_list and path is None or path.strip("/") is "" :
+            logger.error("Will not delete root directory. root_id={}, path={}".format(self.root_id, path))
+            raise Exception("Cannot delete root path")
