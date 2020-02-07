@@ -7,7 +7,7 @@
         "author": "Dataiku (Alex Bourret)",
         "icon": "icon-file-alt",
         "tags": [ "Connector", "Google", "Cloud"],
-        "url": "https://www.dataiku.com/dss/plugins/info/googledrive.html",
+        "url": "https://www.dataiku.com/product/plugins/google-drive/",
         "licenseInfo": "Apache Software License",
         "supportLevel": "NOT_SUPPORTED"
     }
