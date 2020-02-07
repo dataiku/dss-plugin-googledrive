@@ -11,7 +11,7 @@
             "name": "credentials",
             "label": "Access credentials",
             "type": "PASSWORD",
-            "description": "Generated on Google for use in DSS",
+            "description": "Generated on Google for use in DSS, please refer to plugin documentation to set this up.",
             "mandatory": true
         }
     ]
