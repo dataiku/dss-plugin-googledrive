@@ -5,6 +5,7 @@ import os, shutil, re, logging, json, string
 from apiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 from oauth2client.client import AccessTokenCredentials
+
 from httplib2 import Http
 from apiclient import errors
 
@@ -394,7 +395,6 @@ class GoogleDriveFSProvider(FSProvider):
         """
         full_path = self.get_full_path(path)
         logger.info('read:path="{}", full_path="{}"'.format(path, full_path))
-
         item = self.get_item_from_path(full_path)
 
         if item is None:
