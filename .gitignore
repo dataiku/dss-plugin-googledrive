@@ -9,3 +9,5 @@
 .DS_Store
 .idea
 dist/
+.pytest_cache/
+state.json
