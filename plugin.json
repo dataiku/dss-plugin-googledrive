@@ -1,13 +1,13 @@
 {
     "id": "googledrive",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "meta": {
         "label": "Google Drive",
         "description": "Read and write data from/to your Google Drive account",
         "author": "Dataiku (Alex Bourret)",
         "icon": "icon-file-alt",
         "tags": [ "Connector", "Google", "Cloud"],
-        "url": "https://www.dataiku.com/dss/plugins/info/googledrive.html",
+        "url": "https://www.dataiku.com/product/plugins/google-drive/",
         "licenseInfo": "Apache Software License",
         "supportLevel": "NOT_SUPPORTED"
     }
