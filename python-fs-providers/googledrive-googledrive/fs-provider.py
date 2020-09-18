@@ -7,10 +7,10 @@ import logging
 
 from googleapiclient.errors import HttpError
 
-from dku_googledrive.googledrive_helpers import GD, get_id, query_parents_in, get_name, is_file, is_directory
-from dku_googledrive.googledrive_helpers import get_last_modified, file_size, get_root_id, check_path_format
+from dku_googledrive.googledrive_utils import GoogleDriveUtils as gdu
 from dss_constants import DSSConstants
 from dku_googledrive.session import GoogleDriveSession
+from dataikuapi.utils import DataikuException
 
 try:
     from BytesIO import BytesIO  # for Python 2
@@ -23,18 +23,20 @@ logging.basicConfig(level=logging.INFO,
 
 
 class GoogleDriveFSProvider(FSProvider):
+    """
+    Google Drive FS provider
+
+    :param root: the root path for this provider
+    :param config: the dict of the configuration of the object
+    :param plugin_config: contains the plugin settings
+    """
     def __init__(self, root, config, plugin_config):
-        """
-        :param root: the root path for this provider
-        :param config: the dict of the configuration of the object
-        :param plugin_config: contains the plugin settings
-        """
         if len(root) > 0 and root[0] == '/':
             root = root[1:]
         self.root = root
         self.provider_root = "/"
-        check_path_format(self.get_normalized_path(self.root))
-        self.root_id = get_root_id(config)
+        gdu.check_path_format(self.get_normalized_path(self.root))
+        self.root_id = gdu.get_root_id(config)
         self.session = GoogleDriveSession(config, plugin_config)
 
     # util methods
@@ -82,9 +84,9 @@ class GoogleDriveFSProvider(FSProvider):
 
         return {
             DSSConstants.PATH: self.get_normalized_path(path),
-            DSSConstants.SIZE: file_size(item),
-            DSSConstants.LAST_MODIFIED: get_last_modified(item),
-            DSSConstants.IS_DIRECTORY: is_directory(item)
+            DSSConstants.SIZE: gdu.file_size(item),
+            DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item),
+            DSSConstants.IS_DIRECTORY: gdu.is_directory(item)
         }
 
     def set_last_modified(self, path, last_modified):
@@ -107,32 +109,32 @@ class GoogleDriveFSProvider(FSProvider):
                 DSSConstants.FULL_PATH: None,
                 DSSConstants.EXISTS: False
             }
-        if is_file(item):
+        if gdu.is_file(item):
             return {
                 DSSConstants.FULL_PATH: self.get_normalized_path(path),
                 DSSConstants.EXISTS: True,
                 DSSConstants.DIRECTORY: False,
-                DSSConstants.SIZE: file_size(item),
-                DSSConstants.LAST_MODIFIED: get_last_modified(item)
+                DSSConstants.SIZE: gdu.file_size(item),
+                DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
             }
         children = []
 
         files = self.session.directory(item, root_path=self.get_rel_path(full_path))
         for file in files:
-            sub_path = self.get_normalized_path(os.path.join(path, get_name(file)))
+            sub_path = self.get_normalized_path(os.path.join(path, gdu.get_name(file)))
             children.append({
                 DSSConstants.FULL_PATH: sub_path,
                 DSSConstants.EXISTS: True,
-                DSSConstants.DIRECTORY: is_directory(file),
-                DSSConstants.SIZE: file_size(file),
-                DSSConstants.LAST_MODIFIED: get_last_modified(file)
+                DSSConstants.DIRECTORY: gdu.is_directory(file),
+                DSSConstants.SIZE: gdu.file_size(file),
+                DSSConstants.LAST_MODIFIED: gdu.get_last_modified(file)
             })
         return {
             DSSConstants.FULL_PATH: self.get_normalized_path(path),
             DSSConstants.EXISTS: True,
             DSSConstants.DIRECTORY: True,
             DSSConstants.CHILDREN: children,
-            DSSConstants.LAST_MODIFIED: get_last_modified(item)
+            DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
         }
 
     def enumerate(self, path, first_non_empty):
@@ -148,8 +150,8 @@ class GoogleDriveFSProvider(FSProvider):
 
         if item is None:
             no_directory_item = self.session.get_item_from_path(self.get_root_path())
-            query = query_parents_in(
-                [get_id(no_directory_item)],
+            query = gdu.query_parents_in(
+                [gdu.get_id(no_directory_item)],
                 name_contains=self.get_rel_path(path),
                 trashed=False
             )
@@ -159,20 +161,20 @@ class GoogleDriveFSProvider(FSProvider):
             paths = []
             for file in files:
                 paths.append({
-                    DSSConstants.PATH: self.get_normalized_path(get_name(file)),
-                    DSSConstants.SIZE: file[GD.SIZE],
-                    DSSConstants.LAST_MODIFIED: get_last_modified(file)
+                    DSSConstants.PATH: self.get_normalized_path(gdu.get_name(file)),
+                    DSSConstants.SIZE: file[gdu.SIZE],
+                    DSSConstants.LAST_MODIFIED: gdu.get_last_modified(file)
                 })
             return paths
 
         if item is None:
             return None
 
-        if is_file(item):
+        if gdu.is_file(item):
             return [{
                 DSSConstants.PATH: self.get_normalized_path(path),
-                DSSConstants.SIZE: file_size(item),
-                DSSConstants.LAST_MODIFIED: get_last_modified(item)
+                DSSConstants.SIZE: gdu.file_size(item),
+                DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
             }]
 
         paths = []
@@ -189,13 +191,13 @@ class GoogleDriveFSProvider(FSProvider):
             path = ""
         children = self.session.directory(folder, root_path=self.get_rel_path(path))
         for child in children:
-            if is_directory(child):
-                paths.extend(self.list_recursive(path + '/' + get_name(child), child, first_non_empty))
+            if gdu.is_directory(child):
+                paths.extend(self.list_recursive(path + '/' + gdu.get_name(child), child, first_non_empty))
             else:
                 paths.append({
-                    DSSConstants.PATH: path + '/' + get_name(child),
-                    DSSConstants.SIZE: file_size(child),
-                    DSSConstants.LAST_MODIFIED: get_last_modified(child)
+                    DSSConstants.PATH: path + '/' + gdu.get_name(child),
+                    DSSConstants.SIZE: gdu.file_size(child),
+                    DSSConstants.LAST_MODIFIED: gdu.get_last_modified(child)
                 })
                 if first_non_empty:
                     return paths
@@ -209,23 +211,20 @@ class GoogleDriveFSProvider(FSProvider):
         logger.info('delete_recursive:path="{}", full_path="{}"'.format(path, full_path))
         self.assert_path_is_not_root(full_path)
         deleted_item_count = 0
-
-        folder = self.session.get_item_from_path(full_path)
-
-        if is_directory(folder):
-
-            if folder is None or GD.PARENTS not in folder:
+        item = self.session.get_item_from_path(full_path)
+        if gdu.is_directory(item):
+            if item is None or gdu.PARENTS not in item:
                 return deleted_item_count
             else:
-                query = query_parents_in([get_id(folder)])
-                items = self.session.googledrive_list(query)
-                for item in items:
-                    self.session.googledrive_delete(item, parent_id=get_id(folder))
+                query = gdu.query_parents_in([gdu.get_id(item)])
+                children_items = self.session.googledrive_list(query)
+                for child_item in children_items:
+                    self.session.googledrive_delete(child_item, parent_id=gdu.get_id(item))
                     deleted_item_count = deleted_item_count + 1
+                self.session.googledrive_delete(item)
         else:
-            self.session.googledrive_delete(folder)
+            self.session.googledrive_delete(item)
             deleted_item_count = deleted_item_count + 1
-
         return deleted_item_count
 
     def move(self, from_path, to_path):
@@ -246,24 +245,24 @@ class GoogleDriveFSProvider(FSProvider):
             if from_name == to_name:
                 to_item = self.session.get_item_from_path(os.path.split(full_to_path)[0])
 
-                prev_parents = ','.join(p for p in from_item.get(GD.PARENTS))
+                prev_parents = ','.join(p for p in from_item.get(gdu.PARENTS))
                 self.drive.files().update(
-                    fileId=get_id(from_item),
-                    addParents=get_id(to_item),
+                    fileId=gdu.get_id(from_item),
+                    addParents=gdu.get_id(to_item),
                     removeParents=prev_parents,
-                    fields=GD.ID_PARENTS_FIELDS,
+                    fields=gdu.ID_PARENTS_FIELDS,
                 ).execute()
             else:
-                file = self.drive.files().get(fileId=get_id(from_item)).execute()
-                del file[GD.ID]
-                file[GD.NAME] = to_name
+                file = self.drive.files().get(fileId=gdu.get_id(from_item)).execute()
+                del file[gdu.ID]
+                file[gdu.NAME] = to_name
                 self.drive.files().update(
-                    fileId=get_id(from_item),
+                    fileId=gdu.get_id(from_item),
                     body=file,
-                    fields=GD.ID_PARENTS_FIELDS,
+                    fields=gdu.ID_PARENTS_FIELDS,
                 ).execute()
         except HttpError as err:
-            raise Exception('Error from Google Drive while moving files: ' + err)
+            raise DataikuException('Error from Google Drive while moving files: ' + err)
 
         return True
 
@@ -276,7 +275,7 @@ class GoogleDriveFSProvider(FSProvider):
         item = self.session.get_item_from_path(full_path)
 
         if item is None:
-            raise Exception('Path doesn t exist')
+            raise DataikuException('Path doesn t exist')
 
         self.session.googledrive_download(item, stream)
 
@@ -298,4 +297,4 @@ class GoogleDriveFSProvider(FSProvider):
         black_list = [None, "", "root"]
         if self.root_id in black_list and path is None or path.strip("/") == "":
             logger.error("Will not delete root directory. root_id={}, path={}".format(self.root_id, path))
-            raise Exception("Cannot delete root path")
+            raise DataikuException("Cannot delete root path")

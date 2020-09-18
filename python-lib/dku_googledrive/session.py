@@ -11,9 +11,9 @@ from httplib2 import Http
 from mimetypes import MimeTypes
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
-from dku_googledrive.googledrive_helpers import GD, get_id, get_root_id, get_files_ids, split_path
-from dku_googledrive.googledrive_helpers import query_parents_in, keep_files_with, is_file_google_doc
+from dku_googledrive.googledrive_utils import GoogleDriveUtils as gdu
 from time import sleep
+from dataikuapi.utils import DataikuException
 
 try:
     from BytesIO import BytesIO  # for Python 2
@@ -26,6 +26,12 @@ logging.basicConfig(level=logging.INFO,
 
 
 class GoogleDriveSession():
+    """
+    Google Drive Session
+
+    :param config: the dict of the configuration of the object
+    :param plugin_config: contains the plugin settings
+    """
     def __init__(self, config, plugin_config):
         scopes = ['https://www.googleapis.com/auth/drive']
         connection = plugin_config.get("googledrive_connection")
@@ -43,19 +49,19 @@ class GoogleDriveSession():
             http_auth = credentials.authorize(Http())
         self.root_id = config.get("googledrive_root_id")
         if self.root_id is None:
-            self.root_id = GD.ROOT_ID
+            self.root_id = gdu.ROOT_ID
         self.max_attempts = 5
-        self.root_id = get_root_id(config)
-        self.drive = build(GD.API, GD.API_VERSION, http=http_auth)
+        self.root_id = gdu.get_root_id(config)
+        self.drive = build(gdu.API, gdu.API_VERSION, http=http_auth)
 
     def get_item_from_path(self, path_and_file):
-        tokens = split_path(path_and_file)
+        tokens = gdu.split_path(path_and_file)
         if len(tokens) == 1:
             return {
-                GD.MIME_TYPE: GD.FOLDER,
-                GD.SIZE: u'0',
-                GD.ID: self.root_id,
-                GD.NAME: u'/'
+                gdu.MIME_TYPE: gdu.FOLDER,
+                gdu.SIZE: u'0',
+                gdu.ID: self.root_id,
+                gdu.NAME: u'/'
             }
         parent_ids = [self.root_id]
 
@@ -64,32 +70,32 @@ class GoogleDriveSession():
                 token = ''
                 continue
 
-            query = query_parents_in(parent_ids, name_contains=token, trashed=False)
+            query = gdu.query_parents_in(parent_ids, name_contains=token, trashed=False)
             files = self.googledrive_list(query)
-            files = keep_files_with(files, name_starting_with=token)
-            files = keep_files_with(files, name=token)  # we only keep files / parent_ids for names = current token for the next loop
+            files = gdu.keep_files_with(files, name_starting_with=token)
+            files = gdu.keep_files_with(files, name=token)  # we only keep files / parent_ids for names = current token for the next loop
 
             if len(files) == 0:
                 return None
-            parent_ids = get_files_ids(files)
+            parent_ids = gdu.get_files_ids(files)
         return files[0]
 
     def googledrive_download(self, item, stream):
-        if is_file_google_doc(item):
-            data = self.drive.files().export_media(fileId=get_id(item), mimeType=GD.CSV).execute()
+        if gdu.is_file_google_doc(item):
+            data = self.drive.files().export_media(fileId=gdu.get_id(item), mimeType=gdu.CSV).execute()
             file_handle = BytesIO()
             file_handle.write(data)
             file_handle.seek(0)
             shutil.copyfileobj(file_handle, stream)
         else:
-            request = self.drive.files().get_media(fileId=get_id(item))
+            request = self.drive.files().get_media(fileId=gdu.get_id(item))
             downloader = MediaIoBaseDownload(stream, request, chunksize=1024*1024)
             done = False
             while done is False:
                 status, done = downloader.next_chunk()
 
     def directory(self, item, root_path=None):
-        query = query_parents_in([get_id(item)], trashed=False)
+        query = gdu.query_parents_in([gdu.get_id(item)], trashed=False)
         files = self.googledrive_list(query)
         return files
 
@@ -97,17 +103,17 @@ class GoogleDriveSession():
         attempts = 0
         while attempts < self.max_attempts:
             try:
-                request = self.drive.files().list(q=query, fields=GD.LIST_FIELDS).execute()
+                request = self.drive.files().list(q=query, fields=gdu.LIST_FIELDS).execute()
                 files = request.get('files', [])
                 return files
             except HttpError as err:
                 self.handle_googledrive_errors(err, "list")
             attempts = attempts + 1
             logger.info('googledrive_list:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory list operation")
+        raise DataikuException("Max number of attempts reached in Google Drive directory list operation")
 
     def create_directory_from_path(self, path):
-        tokens = split_path(path)
+        tokens = gdu.split_path(path)
 
         parent_ids = [self.root_id]
         current_path = ""
@@ -119,18 +125,18 @@ class GoogleDriveSession():
                 new_directory_id = self.create_directory(token, parent_ids)
                 parent_ids = [new_directory_id]
             else:
-                new_directory_id = get_id(item)
+                new_directory_id = gdu.get_id(item)
                 parent_ids = [new_directory_id]
         return new_directory_id
 
     def create_directory(self, name, parent_ids):
         file_metadata = {
-            GD.NAME: name,
-            GD.PARENTS: parent_ids,
-            GD.MIME_TYPE: GD.FOLDER
+            gdu.NAME: name,
+            gdu.PARENTS: parent_ids,
+            gdu.MIME_TYPE: gdu.FOLDER
         }
         file = self.googledrive_create(body=file_metadata)
-        return get_id(file)
+        return gdu.get_id(file)
 
     def googledrive_create(self, body, media_body=None):
         attempts = 0
@@ -139,27 +145,27 @@ class GoogleDriveSession():
                 file = self.drive.files().create(
                     body=body,
                     media_body=media_body,
-                    fields=GD.ID
+                    fields=gdu.ID
                 ).execute()
                 return file
             except HttpError as err:
                 self.handle_googledrive_errors(err, "create")
             attempts = attempts + 1
             logger.info('googledrive_create:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory create operation")
+        raise DataikuException("Max number of attempts reached in Google Drive directory create operation")
 
     def googledrive_upload(self, filename, file_handle, parent_id=None):
         mime = MimeTypes()
         guessed_type = mime.guess_type(filename)[0]
 
         file_metadata = {
-            GD.NAME: filename
+            gdu.NAME: filename
         }
-        if self.write_as_google_doc and guessed_type == GD.CSV:
-            file_metadata[GD.MIME_TYPE] = GD.SPREADSHEET
+        if self.write_as_google_doc and guessed_type == gdu.CSV:
+            file_metadata[gdu.MIME_TYPE] = gdu.SPREADSHEET
 
         if guessed_type is None:
-            guessed_type = GD.BINARY_STREAM
+            guessed_type = gdu.BINARY_STREAM
 
         media = MediaIoBaseUpload(
             file_handle,
@@ -167,12 +173,12 @@ class GoogleDriveSession():
             resumable=True
         )
 
-        query = query_parents_in([parent_id], name=filename, trashed=False)
+        query = gdu.query_parents_in([parent_id], name=filename, trashed=False)
         files = self.googledrive_list(query)
 
         if len(files) == 0:
             if parent_id:
-                file_metadata[GD.PARENTS] = [parent_id]
+                file_metadata[gdu.PARENTS] = [parent_id]
 
             self.googledrive_create(
                 body=file_metadata,
@@ -180,7 +186,7 @@ class GoogleDriveSession():
             )
         else:
             self.googledrive_update(
-                file_id=get_id(files[0]),
+                file_id=gdu.get_id(files[0]),
                 body=file_metadata,
                 media_body=media
             )
@@ -193,30 +199,30 @@ class GoogleDriveSession():
                     fileId=file_id,
                     body=body,
                     media_body=media_body,
-                    fields=GD.ID
+                    fields=gdu.ID
                 ).execute()
                 return file
             except HttpError as err:
                 self.handle_googledrive_errors(err, "update")
             attempts = attempts + 1
             logger.info('googledrive_update:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory update operation")
+        raise DataikuException("Max number of attempts reached in Google Drive directory update operation")
 
     def googledrive_delete(self, item, parent_id=None):
         attempts = 0
         while attempts < self.max_attempts:
             try:
-                if len(item[GD.PARENTS]) == 1 or parent_id is None:
-                    self.drive.files().delete(fileId=get_id(item)).execute()
+                if len(item[gdu.PARENTS]) == 1 or parent_id is None:
+                    self.drive.files().delete(fileId=gdu.get_id(item)).execute()
                 else:
-                    self.drive.files().update(fileId=get_id(item), removeParents=parent_id).execute()
+                    self.drive.files().update(fileId=gdu.get_id(item), removeParents=parent_id).execute()
             except HttpError as err:
                 if err.resp.status == 404:
                     return
                 self.handle_googledrive_errors(err, "delete")
             attempts = attempts + 1
             logger.info('googledrive_update:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory delete operation")
+        raise DataikuException("Max number of attempts reached in Google Drive directory delete operation")
 
     def handle_googledrive_errors(self, err, context=""):
         if err.resp.status in [403, 500, 503]:
@@ -225,4 +231,4 @@ class GoogleDriveSession():
             reason = ""
             if err.resp.get('content-type', '').startswith('application/json'):
                 reason = json.loads(err.content).get('error').get('errors')[0].get('reason')
-            raise Exception("Googledrive " + context + " error : " + reason)
+            raise DataikuException("Googledrive {} error : {}".format(context, reason))

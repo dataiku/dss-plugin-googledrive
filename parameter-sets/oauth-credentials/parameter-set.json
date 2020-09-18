@@ -2,7 +2,7 @@
     "meta": {
         "label": "Google Single Sign On",
         "description": "",
-        "icon": "icon-file-alt"
+        "icon": "icon-file"
     },
     "defaultDefinableInline": true,
     "defaultDefinableAtProjectLevel": true,
@@ -15,7 +15,6 @@
             "credentialRequestSettings": {
                 "type": "OAUTH2",
                 "oauth2Flow": "authorization_code",
-                "oauth2Provider": "AZURE",
                 "authorizationEndpoint": "https://accounts.google.com/o/oauth2/v2/auth",
                 "tokenEndpoint": "https://oauth2.googleapis.com/token",
                 "scope": "https://www.googleapis.com/auth/drive"

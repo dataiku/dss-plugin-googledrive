@@ -2,7 +2,7 @@
     "meta" : {
         "label": "Google Drive",
         "description": "Read and write data from/to your Google Drive account",
-        "icon": "icon-file-alt"
+        "icon": "icon-file"
     },
     "params": [
         {
@@ -22,7 +22,7 @@
         },
         {
             "name": "googledrive_connection",
-            "label": "Google Drive connection",
+            "label": "Google Drive Token",
             "type": "PRESET",
             "parameterSetId": "googledrive-set-id",
             "visibilityCondition": "model.auth_type == 'token'"
