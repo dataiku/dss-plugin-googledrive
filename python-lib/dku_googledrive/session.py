@@ -82,7 +82,11 @@ class GoogleDriveSession():
 
     def googledrive_download(self, item, stream):
         if gdu.is_file_google_doc(item):
-            data = self.drive.files().export_media(fileId=gdu.get_id(item), mimeType=gdu.CSV).execute()
+            document_type = gdu.get_google_doc_type(item)
+            data = self.drive.files().export_media(
+                fileId=gdu.get_id(item),
+                mimeType=gdu.get_google_doc_mime_equivalence(document_type)
+            ).execute()
             file_handle = BytesIO()
             file_handle.write(data)
             file_handle.seek(0)

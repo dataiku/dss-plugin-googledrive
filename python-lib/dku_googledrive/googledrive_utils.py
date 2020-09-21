@@ -20,10 +20,18 @@ class GoogleDriveUtils(object):
     FALSE = "false"
     FOLDER = "application/vnd.google-apps.folder"
     SPREADSHEET = "application/vnd.google-apps.spreadsheet"
+    GOOGLE_DOCUMENT = "application/vnd.google-apps.document"
     CSV = "text/csv"
     GOOGLE_APPS = "google-apps"
     BINARY_STREAM = "binary/octet-stream"
     LIST_FIELDS = "nextPageToken, files(id, name, size, parents, mimeType, createdTime, modifiedTime)"
+    GOOGLE_DOC_MIME_EQUIVALENCE = {
+        SPREADSHEET: CSV,
+        GOOGLE_DOCUMENT: "text/plain",
+        "application/vnd.google-apps.drawing": "image/svg+xml",
+        "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    }
+    DEFAULT_MIME_TYPE = CSV
 
     @staticmethod
     def split_path(path_and_file):
@@ -99,6 +107,14 @@ class GoogleDriveUtils(object):
     @staticmethod
     def is_file_google_doc(file):
         return GoogleDriveUtils.GOOGLE_APPS in file[GoogleDriveUtils.MIME_TYPE]
+
+    @staticmethod
+    def get_google_doc_type(file):
+        return file[GoogleDriveUtils.MIME_TYPE]
+
+    @staticmethod
+    def get_google_doc_mime_equivalence(gdoc_type):
+        return GoogleDriveUtils.GOOGLE_DOC_MIME_EQUIVALENCE.get(gdoc_type, GoogleDriveUtils.DEFAULT_MIME_TYPE)
 
     @staticmethod
     def file_size(item):
