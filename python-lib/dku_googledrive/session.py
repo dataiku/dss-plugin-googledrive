@@ -14,6 +14,7 @@ from googleapiclient.errors import HttpError
 from dku_googledrive.googledrive_utils import GoogleDriveUtils as gdu
 from time import sleep
 from dataikuapi.utils import DataikuException
+from dku_googledrive.memory_cache import MemoryCache
 
 try:
     from BytesIO import BytesIO  # for Python 2
@@ -52,7 +53,12 @@ class GoogleDriveSession():
             self.root_id = gdu.ROOT_ID
         self.max_attempts = 5
         self.root_id = gdu.get_root_id(config)
-        self.drive = build(gdu.API, gdu.API_VERSION, http=http_auth)
+        self.drive = build(
+            gdu.API,
+            gdu.API_VERSION,
+            http=http_auth,
+            cache=MemoryCache()  # Fix for ImportError messages https://github.com/googleapis/google-api-python-client/issues/325
+        )
 
     def get_item_from_path(self, path_and_file):
         tokens = gdu.split_path(path_and_file)
