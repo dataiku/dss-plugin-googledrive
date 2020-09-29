@@ -1,69 +1,63 @@
 from dataiku.fsprovider import FSProvider
 
-import os, shutil, re, logging, json, string
+import os
+import shutil
+import re
+import logging
 
-from apiclient.discovery import build
-from oauth2client.service_account import ServiceAccountCredentials
-from httplib2 import Http
-from apiclient import errors
-
-from mimetypes import MimeTypes
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
-from random import randrange
-from time import sleep
-from datetime import datetime
+
+from dku_googledrive.googledrive_utils import GoogleDriveUtils as gdu
+from dss_constants import DSSConstants
+from dku_googledrive.session import GoogleDriveSession
+from dataikuapi.utils import DataikuException
 
 try:
-    from BytesIO import BytesIO ## for Python 2
+    from BytesIO import BytesIO  # for Python 2
 except ImportError:
-    from io import BytesIO ## for Python 3
+    from io import BytesIO  # for Python 3
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
-                    format='confluence plugin %(levelname)s - %(message)s')
+                    format='googledrive plugin %(levelname)s - %(message)s')
+
 
 class GoogleDriveFSProvider(FSProvider):
+    """
+    Google Drive FS provider
+
+    :param root: the root path for this provider
+    :param config: the dict of the configuration of the object
+    :param plugin_config: contains the plugin settings
+    """
     def __init__(self, root, config, plugin_config):
-        """
-        :param root: the root path for this provider
-        :param config: the dict of the configuration of the object
-        :param plugin_config: contains the plugin settings
-        """
         if len(root) > 0 and root[0] == '/':
             root = root[1:]
         self.root = root
         self.provider_root = "/"
-        scopes = ['https://www.googleapis.com/auth/drive']
-        connection = plugin_config.get("googledrive_connection")
-        self.write_as_google_doc = config.get("googledrive_write_as_google_doc")
-        self.nodir_mode = False # Future development
-        self.root_id = config.get("googledrive_root_id")
-        if self.root_id is None:
-            self.root_id = 'root'
-        self.max_attempts = 5
-        self.check_path_format(self.get_normalized_path(self.root))
-        credentials_dict = eval(connection['credentials'])
-        credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scopes)
-        http_auth = credentials.authorize(Http())
-        self.drive = build('drive', 'v3', http=http_auth)
+        gdu.check_path_format(self.get_normalized_path(self.root))
+        self.root_id = gdu.get_root_id(config)
+        self.session = GoogleDriveSession(config, plugin_config)
 
     # util methods
     def get_rel_path(self, path):
         if len(path) > 0 and path[0] == '/':
             path = path[1:]
         return path
+
     def get_normalized_path(self, path):
         if len(path) == 0 or path == '/':
             return '/'
         elts = path.split('/')
         elts = [e for e in elts if len(e) > 0]
         return '/' + '/'.join(elts)
+
     def get_full_path(self, path):
         path_elts = [self.provider_root, self.get_rel_path(self.root), self.get_rel_path(path)]
         path_elts = [e for e in path_elts if len(e) > 0]
         ret = os.path.join(*path_elts)
         return ret
+
     def get_root_path(self):
         path_elts = [self.provider_root, self.get_rel_path(self.root)]
         path_elts = [e for e in path_elts if len(e) > 0]
@@ -81,26 +75,19 @@ class GoogleDriveFSProvider(FSProvider):
         if the object doesn't exist
         """
         full_path = self.get_full_path(path)
+        logger.info('stat:path="{}", full_path="{}"'.format(path, full_path))
 
-        item = self.get_item_from_path(full_path)
+        item = self.session.get_item_from_path(full_path)
 
         if item is None:
             return None
 
-        return {'path': self.get_normalized_path(path), 'size': self.file_size(item), 'lastModified': self.get_last_modified(item), 'isDirectory': self.is_directory(item)}
-
-    def get_last_modified(self, item):
-        if "modifiedTime" in item:
-            return int(self.format_date(item["modifiedTime"]))
-        return
-
-    def format_date(self, date):
-        if date is not None:
-            utc_time = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
-            epoch_time = (utc_time - datetime(1970, 1, 1)).total_seconds()
-            return int(epoch_time) * 1000
-        else:
-            return None
+        return {
+            DSSConstants.PATH: self.get_normalized_path(path),
+            DSSConstants.SIZE: gdu.file_size(item),
+            DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item),
+            DSSConstants.IS_DIRECTORY: gdu.is_directory(item)
+        }
 
     def set_last_modified(self, path, last_modified):
         """
@@ -113,155 +100,42 @@ class GoogleDriveFSProvider(FSProvider):
         List the file or directory at the given path, and its children (if directory)
         """
         full_path = self.get_full_path(self.get_rel_path(path))
+        logger.info('browse:path="{}", full_path="{}"'.format(path, full_path))
 
-        item = self.get_item_from_path(full_path)
+        item = self.session.get_item_from_path(full_path)
 
         if item is None:
-            return {'fullPath' : None, 'exists' : False}
-        if self.is_file(item):
-            return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : False, 'size' : self.file_size(item), 'lastModified' : self.get_last_modified(item)}
+            return {
+                DSSConstants.FULL_PATH: None,
+                DSSConstants.EXISTS: False
+            }
+        if gdu.is_file(item):
+            return {
+                DSSConstants.FULL_PATH: self.get_normalized_path(path),
+                DSSConstants.EXISTS: True,
+                DSSConstants.DIRECTORY: False,
+                DSSConstants.SIZE: gdu.file_size(item),
+                DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
+            }
         children = []
 
-        files = self.directory(item, root_path=self.get_rel_path(full_path))
+        files = self.session.directory(item, root_path=self.get_rel_path(full_path))
         for file in files:
-            sub_path = self.get_normalized_path(os.path.join(path, self.get_name(file)))
+            sub_path = self.get_normalized_path(os.path.join(path, gdu.get_name(file)))
             children.append({
-                'fullPath' : sub_path,
-                'exists' : True,
-                'directory' : self.is_directory(file),
-                'size' : self.file_size(file),
-                'lastModified' : self.get_last_modified(file)
+                DSSConstants.FULL_PATH: sub_path,
+                DSSConstants.EXISTS: True,
+                DSSConstants.DIRECTORY: gdu.is_directory(file),
+                DSSConstants.SIZE: gdu.file_size(file),
+                DSSConstants.LAST_MODIFIED: gdu.get_last_modified(file)
             })
-        return {'fullPath' : self.get_normalized_path(path), 'exists' : True, 'directory' : True, 'children' : children, 'lastModified' : self.get_last_modified(item)}
-
-
-    # from http://helpful-nerd.com/2018/01/30/folder-and-directory-management-for-google-drive-using-python/
-
-    def split_path(self, path_and_file):
-        path, file = os.path.split(path_and_file)
-        folders = []
-        while 1:
-            path, folder = os.path.split(path)
-            if folder != '':
-                folders.append(folder)
-            else:
-                if path != '':
-                    folders.append(path)
-                break
-        folders.reverse()
-        if file != "":
-            folders.append(file)
-        return folders
-
-    def file_size(self, item):
-        if self.is_directory(item):
-            return 0
-        else:
-            if 'size' in item:
-                return int(item['size'])
-            else:
-                return 1 # have to lie to get DSS to read virtual files
-
-    def get_name(self, file):
-        return file['name']
-
-    def is_directory(self, file):
-        return file['mimeType'] == "application/vnd.google-apps.folder"
-
-    def is_file(self, file):
-        return file['mimeType'] != "application/vnd.google-apps.folder"
-
-    def get_item_from_path(self, path_and_file):
-        tokens = self.split_path(path_and_file)
-        if len(tokens) == 1:
-            return {u'mimeType': u'application/vnd.google-apps.folder', u'size': u'0', u'id': self.root_id, u'name': u'/'}
-        parent_ids = [self.root_id]
-
-        for token in tokens:
-            if token == '/':
-                token = ''
-                continue
-
-            query = self.query_parents_in(parent_ids, name_contains = token, trashed = False)
-            files = self.googledrive_list(query)
-            files = self.keep_files_with(files, name_starting_with=token)
-            files = self.keep_files_with(files, name=token) # we only keep files / parent_ids for names = current token for the next loop
-
-            if len(files) == 0:
-                return None
-            parent_ids = self.get_files_ids(files)
-        return files[0]
-
-    def directory(self, item, root_path = None):
-
-        query = self.query_parents_in([self.get_id(item)], trashed = False)
-        files = self.googledrive_list(query)
-
-        return files
-
-    def keep_files_with(self, items, name=None, name_starting_with=None):
-        ret = []
-        for item in items:
-            if name_starting_with is not None:
-                if self.get_name(item).startswith(name_starting_with):
-                    ret.append(item)
-            if name is not None:
-                if self.get_name(item) == name:
-                    ret.append(item)
-        return ret
-
-    def query_parents_in(self, parent_ids, name = None, name_contains = None, trashed = None):
-        query = "("
-        is_first = True
-        for parent_id in parent_ids:
-            if is_first:
-                is_first = False
-            else:
-                query = query + " or "
-            query = query + "'{}' in parents".format(parent_id)
-        query = query + ")"
-        if trashed is not None:
-            query = query + ' and trashed=' + ("true" if trashed else "false")
-        if name is not None:
-            query = query + " and name='" + name + "'"
-        if name_contains is not None:
-            query = query + " and name contains '" + name_contains + "'"
-        return query
-
-    def get_files_ids(self, files):
-        parents = []
-        for file in files:
-            parents.append(self.get_id(file))
-        return self.remove_duplicates(parents)
-
-    def remove_duplicates(self, to_filter):
-        return list(set(to_filter))
-
-    def create_directory_from_path(self, path):
-        tokens = self.split_path(path)
-
-        parent_ids = [self.root_id]
-        current_path = ""
-
-        for token in tokens:
-            current_path = os.path.join(current_path, token)
-            item = self.get_item_from_path(current_path)
-            if item is None:
-                new_directory_id = self.create_directory(token, parent_ids)
-                parent_ids = [new_directory_id]
-            else:
-                new_directory_id = self.get_id(item)
-                parent_ids = [new_directory_id]
-        return new_directory_id
-
-    def create_directory(self, name, parent_ids):
-        file_metadata = {
-            'name': name,
-            'parents': parent_ids,
-            'mimeType': 'application/vnd.google-apps.folder'
+        return {
+            DSSConstants.FULL_PATH: self.get_normalized_path(path),
+            DSSConstants.EXISTS: True,
+            DSSConstants.DIRECTORY: True,
+            DSSConstants.CHILDREN: children,
+            DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
         }
-        file = self.googledrive_create(body=file_metadata)
-        return self.get_id(file)
 
     def enumerate(self, path, first_non_empty):
         """
@@ -270,27 +144,38 @@ class GoogleDriveFSProvider(FSProvider):
         If the prefix doesn't denote a file or folder, return None
         """
         full_path = self.get_full_path(path)
+        logger.info('enumerate:path="{}", full_path="{}"'.format(path, full_path))
 
-        item = self.get_item_from_path(full_path)
+        item = self.session.get_item_from_path(full_path)
 
         if item is None:
-            no_directory_item = self.get_item_from_path(self.get_root_path())
-            query = self.query_parents_in([self.get_id(no_directory_item)], name_contains = self.get_rel_path(path), trashed = False)
-            files = self.googledrive_list(query)
+            no_directory_item = self.session.get_item_from_path(self.get_root_path())
+            query = gdu.query_parents_in(
+                [gdu.get_id(no_directory_item)],
+                name_contains=self.get_rel_path(path),
+                trashed=False
+            )
+            files = self.session.googledrive_list(query)
             if len(files) == 0:
                 return None
             paths = []
             for file in files:
-                paths.append({'path':self.get_normalized_path(self.get_name(file)), 'size':file['size'], 'lastModified':self.get_last_modified(file)})
-            if len(files) > 0:
-                item = {u'mimeType': u'application/vnd.google-apps.folder', u'size': u'0', u'id': full_path, u'name': u'root'}
+                paths.append({
+                    DSSConstants.PATH: self.get_normalized_path(gdu.get_name(file)),
+                    DSSConstants.SIZE: file[gdu.SIZE],
+                    DSSConstants.LAST_MODIFIED: gdu.get_last_modified(file)
+                })
             return paths
 
         if item is None:
             return None
 
-        if self.is_file(item):
-            return [{'path':self.get_normalized_path(path), 'size':self.file_size(item), 'lastModified':self.get_last_modified(item)}]
+        if gdu.is_file(item):
+            return [{
+                DSSConstants.PATH: self.get_normalized_path(path),
+                DSSConstants.SIZE: gdu.file_size(item),
+                DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
+            }]
 
         paths = []
         paths = self.list_recursive(path, item, first_non_empty)
@@ -304,12 +189,16 @@ class GoogleDriveFSProvider(FSProvider):
         paths = []
         if path == "/":
             path = ""
-        children = self.directory(folder, root_path = self.get_rel_path(path))
+        children = self.session.directory(folder, root_path=self.get_rel_path(path))
         for child in children:
-            if self.is_directory(child):
-                paths.extend(self.list_recursive(path + '/' + self.get_name(child), child, first_non_empty))
+            if gdu.is_directory(child):
+                paths.extend(self.list_recursive(path + '/' + gdu.get_name(child), child, first_non_empty))
             else:
-                paths.append({'path':path + '/' + self.get_name(child), 'size':self.file_size(child), 'lastModified':self.get_last_modified(child)})
+                paths.append({
+                    DSSConstants.PATH: path + '/' + gdu.get_name(child),
+                    DSSConstants.SIZE: gdu.file_size(child),
+                    DSSConstants.LAST_MODIFIED: gdu.get_last_modified(child)
+                })
                 if first_non_empty:
                     return paths
         return paths
@@ -319,24 +208,23 @@ class GoogleDriveFSProvider(FSProvider):
         Delete recursively from path. Return the number of deleted files (optional)
         """
         full_path = self.get_full_path(path)
+        logger.info('delete_recursive:path="{}", full_path="{}"'.format(path, full_path))
+        self.assert_path_is_not_root(full_path)
         deleted_item_count = 0
-
-        folder = self.get_item_from_path(full_path)
-
-        if self.is_directory(folder):
-
-            if folder is None or "parents" not in folder:
+        item = self.session.get_item_from_path(full_path)
+        if gdu.is_directory(item):
+            if item is None or gdu.PARENTS not in item:
                 return deleted_item_count
             else:
-                query = self.query_parents_in([self.get_id(folder)])
-                items = self.googledrive_list(query)
-                for item in items:
-                    self.googledrive_delete(item, parent_id = self.get_id(folder))
+                query = gdu.query_parents_in([gdu.get_id(item)])
+                children_items = self.session.googledrive_list(query)
+                for child_item in children_items:
+                    self.session.googledrive_delete(child_item, parent_id=gdu.get_id(item))
                     deleted_item_count = deleted_item_count + 1
+                self.session.googledrive_delete(item)
         else:
-            self.googledrive_delete(folder)
+            self.session.googledrive_delete(item)
             deleted_item_count = deleted_item_count + 1
-
         return deleted_item_count
 
     def move(self, from_path, to_path):
@@ -347,31 +235,34 @@ class GoogleDriveFSProvider(FSProvider):
         full_to_path = self.get_full_path(to_path)
         from_name = os.path.basename(from_path)
         to_name = os.path.basename(to_path)
+        logger.info('move:from "{}" to "{}"'.format(full_from_path, full_to_path))
 
         try:
-            from_item = self.get_item_from_path(full_from_path)
+            from_item = self.session.get_item_from_path(full_from_path)
             if from_item is None:
                 return False
 
             if from_name == to_name:
-                to_item = self.get_item_from_path(os.path.split(full_to_path)[0])
+                to_item = self.session.get_item_from_path(os.path.split(full_to_path)[0])
 
-                prev_parents = ','.join(p for p in from_item.get('parents'))
-                self.drive.files().update( fileId = self.get_id(from_item),
-                        addParents = self.get_id(to_item),
-                        removeParents = prev_parents,
-                        fields = 'id, parents',
-                        ).execute()
+                prev_parents = ','.join(p for p in from_item.get(gdu.PARENTS))
+                self.drive.files().update(
+                    fileId=gdu.get_id(from_item),
+                    addParents=gdu.get_id(to_item),
+                    removeParents=prev_parents,
+                    fields=gdu.ID_PARENTS_FIELDS,
+                ).execute()
             else:
-                file = self.drive.files().get(fileId=self.get_id(from_item)).execute()
-                del file['id']
-                file['name'] = to_name
-                self.drive.files().update(fileId = self.get_id(from_item),
-                        body = file,
-                        fields = 'id, parents',
-                        ).execute()
+                file = self.drive.files().get(fileId=gdu.get_id(from_item)).execute()
+                del file[gdu.ID]
+                file[gdu.NAME] = to_name
+                self.drive.files().update(
+                    fileId=gdu.get_id(from_item),
+                    body=file,
+                    fields=gdu.ID_PARENTS_FIELDS,
+                ).execute()
         except HttpError as err:
-            raise Exception('Error from Google Drive while moving files: ' + err)
+            raise DataikuException('Error from Google Drive while moving files: ' + err)
 
         return True
 
@@ -380,162 +271,30 @@ class GoogleDriveFSProvider(FSProvider):
         Read the object denoted by path into the stream. Limit is an optional bound on the number of bytes to send
         """
         full_path = self.get_full_path(path)
-
-        item = self.get_item_from_path(full_path)
+        logger.info('read:path="{}", full_path="{}"'.format(path, full_path))
+        item = self.session.get_item_from_path(full_path)
 
         if item is None:
-            raise Exception('Path doesn t exist')
+            raise DataikuException('Path doesn t exist')
 
-        data = self.googledrive_download(item, stream)
-
-    def googledrive_download(self, item, stream):
-        if self.is_file_google_doc(item):
-            data =  self.drive.files().export_media(fileId = self.get_id(item), mimeType = "text/csv").execute()
-            file_handle = BytesIO()
-            file_handle.write(data)
-            file_handle.seek(0)
-            shutil.copyfileobj(file_handle, stream)
-        else:
-            request =  self.drive.files().get_media(fileId = self.get_id(item))
-            downloader = MediaIoBaseDownload(stream, request, chunksize=1024*1024)
-            done = False
-            while done is False:
-                status, done = downloader.next_chunk()
-
-    def is_file_google_doc(self, file):
-        return "google-apps" in file['mimeType']
+        self.session.googledrive_download(item, stream)
 
     def write(self, path, stream):
         """
         Write the stream to the object denoted by path into the stream
         """
         full_path = self.get_full_path(path)
-        file_name = self.get_rel_path(path)
+        logger.info('write:path="{}", full_path="{}"'.format(path, full_path))
 
-        folder = self.get_item_from_path(self.get_root_path())
         bio = BytesIO()
         shutil.copyfileobj(stream, bio)
         bio.seek(0)
-        if self.nodir_mode:
-            self.googledrive_upload(file_name, bio, parent_id = self.get_id(folder))
-        else:
-            base_path, file_name = os.path.split(full_path)
-            directory_id = self.create_directory_from_path(base_path)
-            self.googledrive_upload(file_name, bio, parent_id = directory_id)
+        base_path, file_name = os.path.split(full_path)
+        directory_id = self.session.create_directory_from_path(base_path)
+        self.session.googledrive_upload(file_name, bio, parent_id=directory_id)
 
-    def get_id(self, item):
-        return item['id']
-
-    def googledrive_upload(self, filename, file_handle, parent_id=None):
-        mime = MimeTypes()
-        guessed_type = mime.guess_type(filename)[0]
-
-        file_metadata = {
-            'name': filename
-        }
-        if self.write_as_google_doc and guessed_type == "text/csv":
-            file_metadata['mimeType'] = 'application/vnd.google-apps.spreadsheet'
-
-        if guessed_type is None:
-            guessed_type = "binary/octet-stream"
-
-        media = MediaIoBaseUpload(file_handle,
-                                mimetype=guessed_type,
-                                resumable=True)
-
-        query = self.query_parents_in([parent_id], name = filename, trashed = False)
-        files = self.googledrive_list(query)
-
-        if len(files) == 0:
-            if parent_id:
-                file_metadata['parents'] = [parent_id]
-
-            file = self.googledrive_create(body=file_metadata,
-                                    media_body=media)
-        else:
-            file = self.googledrive_update(file_id=self.get_id(files[0]),
-                                    body=file_metadata,
-                                    media_body=media)
-
-    def googledrive_list(self, query):
-        fields = "nextPageToken, files(id, name, size, parents, mimeType, createdTime, modifiedTime)"
-
-        attempts = 0
-        while attempts < self.max_attempts:
-            try:
-                request = self.drive.files().list(q=query, fields=fields).execute()
-                files = request.get('files', [])
-                return files
-            except HttpError as err:
-                self.handle_googledrive_errors(err, "list")
-            attempts = attempts + 1
-            logger.info('googledrive_list:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory list operation")
-
-    def googledrive_create(self, body, media_body = None):
-        attempts = 0
-        while attempts < self.max_attempts:
-            try:
-                file = self.drive.files().create(body=body,
-                                    media_body=media_body,
-                                    fields='id').execute()
-                return file
-            except HttpError as err:
-                self.handle_googledrive_errors(err, "create")
-            attempts = attempts + 1
-            logger.info('googledrive_create:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory create operation")
-
-    def googledrive_update(self, file_id, body, media_body = None):
-        attempts = 0
-        while attempts < self.max_attempts:
-            try:
-                file = self.drive.files().update(fileId=file_id,
-                                    body=body,
-                                    media_body=media_body,
-                                    fields='id').execute()
-                return file
-            except HttpError as err:
-                self.handle_googledrive_errors(err, "update")
-            attempts = attempts + 1
-            logger.info('googledrive_update:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory update operation")
-
-    def googledrive_delete(self, item, parent_id = None):
-        attempts = 0
-        while attempts < self.max_attempts:
-            try:
-                if len(item['parents']) == 1 or parent_id is None:
-                    self.drive.files().delete(fileId=self.get_id(item)).execute()
-                else:
-                    self.drive.files().update(fileId=self.get_id(item), removeParents=parent_id).execute()
-            except HttpError as err:
-                if err.resp.status == 404:
-                    return
-                self.handle_googledrive_errors(err, "delete")
-            attempts = attempts + 1
-            logger.info('googledrive_update:attempts={}'.format(attempts))
-        raise Exception("Max number of attempts reached in Google Drive directory delete operation")
-
-    def handle_googledrive_errors(self, err, context = ""):
-        if err.resp.status in [403, 500, 503]:
-            sleep( 5 + randrange(5))
-        else:
-            reason = ""
-            if err.resp.get('content-type', '').startswith('application/json'):
-                reason = json.loads(err.content).get('error').get('errors')[0].get('reason')
-            raise Exception("Googledrive " + context + " error : " + reason)
-
-    def check_path_format(self, path):
-        special_names = [".",".."]
-        if not all(c in string.printable for c in path):
-            raise Exception('The path contains non-printable char(s)')
-        for element in path.split('/'):
-            if len(element) > 1024:
-                raise Exception('An element of the path is longer than the allowed 1024 characters')
-            if element in special_names:
-                raise Exception('Special name "{0}" is not allowed in a box.com path'.format(element))
-            if element.endswith(' '):
-                raise Exception('An element of the path contains a trailing space')
-            if element.startswith('.well-known/acme-challenge'):
-                raise Exception('An element of the path starts with ".well-known/acme-challenge"')
+    def assert_path_is_not_root(self, path):
+        black_list = [None, "", "root"]
+        if self.root_id in black_list and path is None or path.strip("/") == "":
+            logger.error("Will not delete root directory. root_id={}, path={}".format(self.root_id, path))
+            raise DataikuException("Cannot delete root path")

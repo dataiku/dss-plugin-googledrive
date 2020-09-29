@@ -1,8 +1,8 @@
 {
     "meta" : {
-        "label": "Google Drive connection",
+        "label": "Google Drive Token",
         "description": "",
-        "icon": "icon-file-alt"
+        "icon": "icon-file"
     },
     "defaultDefinableInline": true,
     "defaultDefinableAtProjectLevel": true,
