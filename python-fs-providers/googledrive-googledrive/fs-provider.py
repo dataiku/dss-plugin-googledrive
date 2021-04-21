@@ -245,17 +245,17 @@ class GoogleDriveFSProvider(FSProvider):
                 to_item = self.session.get_item_from_path(os.path.split(full_to_path)[0])
 
                 prev_parents = ','.join(p for p in from_item.get(gdu.PARENTS))
-                self.drive.files().update(
+                self.session.drive.files().update(
                     fileId=gdu.get_id(from_item),
                     addParents=gdu.get_id(to_item),
                     removeParents=prev_parents,
                     fields=gdu.ID_PARENTS_FIELDS,
                 ).execute()
             else:
-                file = self.drive.files().get(fileId=gdu.get_id(from_item)).execute()
+                file = self.session.drive.files().get(fileId=gdu.get_id(from_item)).execute()
                 del file[gdu.ID]
                 file[gdu.NAME] = to_name
-                self.drive.files().update(
+                self.session.drive.files().update(
                     fileId=gdu.get_id(from_item),
                     body=file,
                     fields=gdu.ID_PARENTS_FIELDS,
