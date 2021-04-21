@@ -163,6 +163,6 @@ class GoogleDriveUtils(object):
     @staticmethod
     def get_root_id(config):
         root_id = config.get("googledrive_root_id")
-        if root_id is None:
+        if not root_id:
             root_id = GoogleDriveUtils.ROOT_ID
         return root_id

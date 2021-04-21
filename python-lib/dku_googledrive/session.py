@@ -49,7 +49,7 @@ class GoogleDriveSession():
             credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scopes)
             http_auth = credentials.authorize(Http())
         self.root_id = config.get("googledrive_root_id")
-        if self.root_id is None:
+        if not self.root_id:
             self.root_id = gdu.ROOT_ID
         self.max_attempts = 5
         self.root_id = gdu.get_root_id(config)
