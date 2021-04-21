@@ -13,7 +13,6 @@ from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 from dku_googledrive.googledrive_utils import GoogleDriveUtils as gdu
 from time import sleep
-from dataikuapi.utils import DataikuException
 from dku_googledrive.memory_cache import MemoryCache
 
 try:
@@ -24,6 +23,10 @@ except ImportError:
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
                     format='googledrive plugin %(levelname)s - %(message)s')
+
+
+class GoogleDriveSessionError(ValueError):
+    pass
 
 
 class GoogleDriveSession():
@@ -134,7 +137,7 @@ class GoogleDriveSession():
                 self.handle_googledrive_errors(err, "list")
             attempts = attempts + 1
             logger.info('googledrive_list:attempts={}'.format(attempts))
-        raise DataikuException("Max number of attempts reached in Google Drive directory list operation")
+        raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory list operation")
 
     def create_directory_from_path(self, path):
         tokens = gdu.split_path(path)
@@ -176,7 +179,7 @@ class GoogleDriveSession():
                 self.handle_googledrive_errors(err, "create")
             attempts = attempts + 1
             logger.info('googledrive_create:attempts={}'.format(attempts))
-        raise DataikuException("Max number of attempts reached in Google Drive directory create operation")
+        raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory create operation")
 
     def googledrive_upload(self, filename, file_handle, parent_id=None):
         mime = MimeTypes()
@@ -230,7 +233,7 @@ class GoogleDriveSession():
                 self.handle_googledrive_errors(err, "update")
             attempts = attempts + 1
             logger.info('googledrive_update:attempts={}'.format(attempts))
-        raise DataikuException("Max number of attempts reached in Google Drive directory update operation")
+        raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory update operation")
 
     def googledrive_delete(self, item, parent_id=None):
         attempts = 0
@@ -246,7 +249,7 @@ class GoogleDriveSession():
                 self.handle_googledrive_errors(err, "delete")
             attempts = attempts + 1
             logger.info('googledrive_update:attempts={}'.format(attempts))
-        raise DataikuException("Max number of attempts reached in Google Drive directory delete operation")
+        raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory delete operation")
 
     def handle_googledrive_errors(self, err, context=""):
         if err.resp.status in [403, 500, 503]:
@@ -255,4 +258,4 @@ class GoogleDriveSession():
             reason = ""
             if err.resp.get('content-type', '').startswith('application/json'):
                 reason = json.loads(err.content).get('error').get('errors')[0].get('reason')
-            raise DataikuException("Googledrive {} error : {}".format(context, reason))
+            raise GoogleDriveSessionError("Googledrive {} error : {}".format(context, reason))

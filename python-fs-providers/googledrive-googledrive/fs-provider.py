@@ -10,7 +10,6 @@ from googleapiclient.errors import HttpError
 from dku_googledrive.googledrive_utils import GoogleDriveUtils as gdu
 from dss_constants import DSSConstants
 from dku_googledrive.session import GoogleDriveSession
-from dataikuapi.utils import DataikuException
 
 try:
     from BytesIO import BytesIO  # for Python 2
@@ -262,7 +261,7 @@ class GoogleDriveFSProvider(FSProvider):
                     fields=gdu.ID_PARENTS_FIELDS,
                 ).execute()
         except HttpError as err:
-            raise DataikuException('Error from Google Drive while moving files: ' + err)
+            raise Exception('Error from Google Drive while moving files: ' + err)
 
         return True
 
@@ -275,7 +274,7 @@ class GoogleDriveFSProvider(FSProvider):
         item = self.session.get_item_from_path(full_path)
 
         if item is None:
-            raise DataikuException('Path doesn t exist')
+            raise ValueError('Path doesn t exist')
 
         self.session.googledrive_download(item, stream)
 
@@ -297,4 +296,4 @@ class GoogleDriveFSProvider(FSProvider):
         black_list = [None, "", "root"]
         if self.root_id in black_list and path is None or path.strip("/") == "":
             logger.error("Will not delete root directory. root_id={}, path={}".format(self.root_id, path))
-            raise DataikuException("Cannot delete root path")
+            raise ValueError("Cannot delete root path")
