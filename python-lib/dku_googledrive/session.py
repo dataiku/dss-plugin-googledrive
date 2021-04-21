@@ -113,8 +113,20 @@ class GoogleDriveSession():
         attempts = 0
         while attempts < self.max_attempts:
             try:
-                request = self.drive.files().list(q=query, fields=gdu.LIST_FIELDS).execute()
-                files = request.get('files', [])
+                files = []
+                kwargs = {
+                    'q': query,
+                    'fields': gdu.LIST_FIELDS
+                }
+                initial_call = True
+                next_page_token = None
+                while initial_call or next_page_token:
+                    initial_call = False
+                    if next_page_token:
+                        kwargs['pageToken'] = next_page_token
+                    request = self.drive.files().list(**kwargs).execute()
+                    files.extend(request.get('files', []))
+                    next_page_token = request.get('nextPageToken')
                 return files
             except HttpError as err:
                 self.handle_googledrive_errors(err, "list")
