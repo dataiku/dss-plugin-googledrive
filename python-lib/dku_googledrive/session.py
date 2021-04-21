@@ -129,9 +129,9 @@ class GoogleDriveSession():
                     initial_call = False
                     if next_page_token:
                         kwargs['pageToken'] = next_page_token
-                    request = self.drive.files().list(**kwargs).execute()
-                    files.extend(request.get('files', []))
-                    next_page_token = request.get('nextPageToken')
+                    response = self.drive.files().list(**kwargs).execute()
+                    files.extend(response.get('files', []))
+                    next_page_token = response.get('nextPageToken')
                 return files
             except HttpError as err:
                 self.handle_googledrive_errors(err, "list")

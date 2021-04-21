@@ -5,3 +5,4 @@
 - Gives access to Shared Drives
 - Adds pagination (giving access to directories with more than 100 items)
 - Fix issue with empty root id
+- Dependencies updates (google-api-python-client, httplib2)
