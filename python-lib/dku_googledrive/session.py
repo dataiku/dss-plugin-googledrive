@@ -116,7 +116,9 @@ class GoogleDriveSession():
                 files = []
                 kwargs = {
                     'q': query,
-                    'fields': gdu.LIST_FIELDS
+                    'fields': gdu.LIST_FIELDS,
+                    'includeItemsFromAllDrives': True,
+                    'supportsAllDrives': True
                 }
                 initial_call = True
                 next_page_token = None
