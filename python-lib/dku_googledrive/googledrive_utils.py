@@ -1,7 +1,10 @@
 import os
 import string
 from datetime import datetime
-from dataikuapi.utils import DataikuException
+
+
+class GoogleDriveUtilsError(ValueError):
+    pass
 
 
 class GoogleDriveUtils(object):
@@ -130,16 +133,16 @@ class GoogleDriveUtils(object):
     def check_path_format(path):
         special_names = [".", ".."]
         if not all(c in string.printable for c in path):
-            raise DataikuException('The path contains non-printable char(s)')
+            raise GoogleDriveUtilsError('The path contains non-printable char(s)')
         for element in path.split('/'):
             if len(element) > 1024:
-                raise DataikuException('An element of the path is longer than the allowed 1024 characters')
+                raise GoogleDriveUtilsError('An element of the path is longer than the allowed 1024 characters')
             if element in special_names:
-                raise DataikuException('Special name "{0}" is not allowed in a box.com path'.format(element))
+                raise GoogleDriveUtilsError('Special name "{0}" is not allowed in a box.com path'.format(element))
             if element.endswith(' '):
-                raise DataikuException('An element of the path contains a trailing space')
+                raise GoogleDriveUtilsError('An element of the path contains a trailing space')
             if element.startswith('.well-known/acme-challenge'):
-                raise DataikuException('An element of the path starts with ".well-known/acme-challenge"')
+                raise GoogleDriveUtilsError('An element of the path starts with ".well-known/acme-challenge"')
 
     @staticmethod
     def query_parents_in(parent_ids, name=None, name_contains=None, trashed=None):
@@ -163,6 +166,6 @@ class GoogleDriveUtils(object):
     @staticmethod
     def get_root_id(config):
         root_id = config.get("googledrive_root_id")
-        if root_id is None:
+        if not root_id:
             root_id = GoogleDriveUtils.ROOT_ID
         return root_id
