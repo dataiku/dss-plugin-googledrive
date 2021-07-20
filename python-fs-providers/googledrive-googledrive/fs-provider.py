@@ -143,7 +143,7 @@ class GoogleDriveFSProvider(FSProvider):
         If the prefix doesn't denote a file or folder, return None
         """
         full_path = self.get_full_path(path)
-        logger.info('enumerate:path="{}", full_path="{}"'.format(path, full_path))
+        logger.info('enumerate:path="{}", full_path="{}", first_non_empty={}'.format(path, full_path, first_non_empty))
 
         item = self.session.get_item_from_path(full_path)
 
@@ -170,11 +170,12 @@ class GoogleDriveFSProvider(FSProvider):
             return None
 
         if gdu.is_file(item):
-            return [{
+            ret = [{
                 DSSConstants.PATH: self.get_normalized_path(path),
                 DSSConstants.SIZE: gdu.file_size(item),
                 DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
             }]
+            return ret
 
         paths = []
         paths = self.list_recursive(path, item, first_non_empty)
