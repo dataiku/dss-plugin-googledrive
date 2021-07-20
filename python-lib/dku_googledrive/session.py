@@ -199,24 +199,14 @@ class GoogleDriveSession():
             mimetype=guessed_type,
             resumable=True
         )
+        
+        if parent_id:
+            file_metadata[gdu.PARENTS] = [parent_id]
 
-        query = gdu.query_parents_in([parent_id], name=filename, trashed=False)
-        files = self.googledrive_list(query)
-
-        if len(files) == 0:
-            if parent_id:
-                file_metadata[gdu.PARENTS] = [parent_id]
-
-            self.googledrive_create(
-                body=file_metadata,
-                media_body=media
-            )
-        else:
-            self.googledrive_update(
-                file_id=gdu.get_id(files[0]),
-                body=file_metadata,
-                media_body=media
-            )
+        self.googledrive_create(
+            body=file_metadata,
+            media_body=media
+        )
 
     def googledrive_update(self, file_id, body, media_body=None):
         attempts = 0
