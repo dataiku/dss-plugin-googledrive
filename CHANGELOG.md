@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.1.2](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.1.2) - Fix release - 2021-08-02
+
+- Fix issue with overwriting existing file
+
 ## [Version 1.1.1](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.1.1) - Feature release - 2021-04-21
 
 - Gives access to Shared Drives
