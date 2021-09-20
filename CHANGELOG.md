@@ -1,6 +1,6 @@
 # Changelog
 
-## [Version 1.1.2](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.1.2) - Fix release - 2021-08-02
+## [Version 1.1.2](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.1.2) - Fix release - 2021-09-20
 
 - Fix issue with overwriting existing file
 
