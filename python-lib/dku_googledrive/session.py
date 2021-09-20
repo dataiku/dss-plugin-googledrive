@@ -165,8 +165,11 @@ class GoogleDriveSession():
         file = self.googledrive_create(body=file_metadata)
         return gdu.get_id(file)
 
-    def googledrive_create(self, body, media_body=None):
+    def googledrive_create(self, body, media_body=None, parent_id=None):
         attempts = 0
+        if parent_id:
+                body[gdu.PARENTS] = [parent_id]
+
         while attempts < self.max_attempts:
             try:
                 file = self.drive.files().create(
@@ -190,6 +193,8 @@ class GoogleDriveSession():
         }
         if self.write_as_google_doc and guessed_type == gdu.CSV:
             file_metadata[gdu.MIME_TYPE] = gdu.SPREADSHEET
+            if filename.lower().endswith(".csv"):
+                file_metadata[gdu.NAME] = filename + ".csv"
 
         if guessed_type is None:
             guessed_type = gdu.BINARY_STREAM
@@ -204,21 +209,20 @@ class GoogleDriveSession():
         files = self.googledrive_list(query)
 
         if len(files) == 0:
-            if parent_id:
-                file_metadata[gdu.PARENTS] = [parent_id]
-
             self.googledrive_create(
                 body=file_metadata,
-                media_body=media
+                media_body=media,
+                parent_id=parent_id
             )
         else:
             self.googledrive_update(
                 file_id=gdu.get_id(files[0]),
                 body=file_metadata,
-                media_body=media
+                media_body=media,
+                parent_id=parent_id
             )
 
-    def googledrive_update(self, file_id, body, media_body=None):
+    def googledrive_update(self, file_id, body, media_body=None, parent_id=None):
         attempts = 0
         while attempts < self.max_attempts:
             try:
@@ -228,11 +232,22 @@ class GoogleDriveSession():
                     media_body=media_body,
                     fields=gdu.ID
                 ).execute()
+                logger.info("googledrive_update on {} successfull".format(file_id))
                 return file
             except HttpError as err:
-                self.handle_googledrive_errors(err, "update")
+                if err.resp.status == 404:
+                    logger.info("googledrive_update: 404 on {}, trying googledrive_create".format(file_id))
+                    file = self.googledrive_create(
+                        body=body,
+                        media_body=media_body,
+                        parent_id=parent_id
+                    )
+                    logger.info("googledrive_create:googledrive_create done")
+                    return file
+                else:
+                    self.handle_googledrive_errors(err, "update")
             attempts = attempts + 1
-            logger.info('googledrive_update:attempts={}'.format(attempts))
+            logger.info('googledrive_update:googledrive_create successful')
         raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory update operation")
 
     def googledrive_delete(self, item, parent_id=None):
