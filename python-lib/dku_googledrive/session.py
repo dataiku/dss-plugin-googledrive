@@ -136,7 +136,7 @@ class GoogleDriveSession():
             except HttpError as err:
                 self.handle_googledrive_errors(err, "list")
             attempts = attempts + 1
-            logger.info('googledrive_list:attempts={}'.format(attempts))
+            logger.info('googledrive_list:attempts={} on {}'.format(attempts, query))
         raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory list operation")
 
     def create_directory_from_path(self, path):
@@ -175,13 +175,14 @@ class GoogleDriveSession():
                 file = self.drive.files().create(
                     body=body,
                     media_body=media_body,
-                    fields=gdu.ID
+                    fields=gdu.ID,
+                    supportsAllDrives=True
                 ).execute()
                 return file
             except HttpError as err:
                 self.handle_googledrive_errors(err, "create")
             attempts = attempts + 1
-            logger.info('googledrive_create:attempts={}'.format(attempts))
+            logger.info('googledrive_create:attempts={} on {}'.format(attempts, body))
         raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory create operation")
 
     def googledrive_upload(self, filename, file_handle, parent_id=None):
@@ -230,13 +231,14 @@ class GoogleDriveSession():
                     fileId=file_id,
                     body=body,
                     media_body=media_body,
-                    fields=gdu.ID
+                    fields=gdu.ID,
+                    supportsAllDrives=True
                 ).execute()
-                logger.info("googledrive_update on {} successfull".format(file_id))
+                logger.info("googledrive_update on {} successfull".format(body))
                 return file
             except HttpError as err:
                 if err.resp.status == 404:
-                    logger.info("googledrive_update: 404 on {}, trying googledrive_create".format(file_id))
+                    logger.info("googledrive_update: 404 on {}, trying googledrive_create".format(body))
                     file = self.googledrive_create(
                         body=body,
                         media_body=media_body,
@@ -247,7 +249,7 @@ class GoogleDriveSession():
                 else:
                     self.handle_googledrive_errors(err, "update")
             attempts = attempts + 1
-            logger.info('googledrive_update:googledrive_create successful')
+            logger.info('googledrive_update:attempts={} on {}'.format(attempts, body))
         raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory update operation")
 
     def googledrive_delete(self, item, parent_id=None):
@@ -255,15 +257,23 @@ class GoogleDriveSession():
         while attempts < self.max_attempts:
             try:
                 if len(item[gdu.PARENTS]) == 1 or parent_id is None:
-                    self.drive.files().delete(fileId=gdu.get_id(item)).execute()
+                    self.drive.files().delete(
+                        fileId=gdu.get_id(item),
+                        supportsAllDrives=True
+                    ).execute()
                 else:
-                    self.drive.files().update(fileId=gdu.get_id(item), removeParents=parent_id).execute()
+                    self.drive.files().update(
+                        fileId=gdu.get_id(item),
+                        removeParents=parent_id,
+                        supportsAllDrives=True
+                    ).execute()
             except HttpError as err:
+                logger.warn("HttpError={}".format(err))
                 if err.resp.status == 404:
                     return
                 self.handle_googledrive_errors(err, "delete")
             attempts = attempts + 1
-            logger.info('googledrive_update:attempts={}'.format(attempts))
+            logger.info('googledrive_delete:attempts={} on {}'.format(attempts, item))
         raise GoogleDriveSessionError("Max number of attempts reached in Google Drive directory delete operation")
 
     def handle_googledrive_errors(self, err, context=""):
