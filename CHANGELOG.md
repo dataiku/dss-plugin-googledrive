@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.1.4](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.1.4) - Fix release - 2022-11-23
+
+- Fix SSO for Google WebApps
+
 ## [Version 1.1.3](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.1.3) - Fix release - 2022-01-05
 
 - Fix issues with operating files within a shared drive
