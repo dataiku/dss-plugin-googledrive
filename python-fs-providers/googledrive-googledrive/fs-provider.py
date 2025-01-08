@@ -80,9 +80,9 @@ class GoogleDriveFSProvider(FSProvider):
 
         if item is None:
             return None
-
+        extension = ".xlsx" if is_google_sheet_document(item) else ""
         return {
-            DSSConstants.PATH: self.get_normalized_path(path),
+            DSSConstants.PATH: self.get_normalized_path(path) + extension,
             DSSConstants.SIZE: gdu.file_size(item),
             DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item),
             DSSConstants.IS_DIRECTORY: gdu.is_directory(item)
@@ -109,8 +109,9 @@ class GoogleDriveFSProvider(FSProvider):
                 DSSConstants.EXISTS: False
             }
         if gdu.is_file(item):
+            extension = ".xlsx" if is_google_sheet_document(item) else ""
             return {
-                DSSConstants.FULL_PATH: self.get_normalized_path(path),
+                DSSConstants.FULL_PATH: self.get_normalized_path(path) + extension,
                 DSSConstants.EXISTS: True,
                 DSSConstants.DIRECTORY: False,
                 DSSConstants.SIZE: gdu.file_size(item),
@@ -269,6 +270,8 @@ class GoogleDriveFSProvider(FSProvider):
         """
         Read the object denoted by path into the stream. Limit is an optional bound on the number of bytes to send
         """
+        if path.endswith(".xlsx"):
+            path = path[:-len(".xlsx")]
         full_path = self.get_full_path(path)
         logger.info('read:path="{}", full_path="{}"'.format(path, full_path))
         item = self.session.get_item_from_path(full_path)
@@ -297,3 +300,7 @@ class GoogleDriveFSProvider(FSProvider):
         if self.root_id in black_list and path is None or path.strip("/") == "":
             logger.error("Will not delete root directory. root_id={}, path={}".format(self.root_id, path))
             raise ValueError("Cannot delete root path")
+
+
+def is_google_sheet_document(file):
+    return file.get("mimeType") == "application/vnd.google-apps.spreadsheet"
