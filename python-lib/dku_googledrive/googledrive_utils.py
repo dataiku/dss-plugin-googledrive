@@ -35,7 +35,7 @@ class GoogleDriveUtils(object):
         "application/vnd.google-apps.drawing": "image/svg+xml",
         "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     }
-    GOOGLE_DOC_MIME_EQUIVALENCE_MULTISHEETS = {
+    GOOGLE_DOC_MIME_EQUIVALENCE_AS_XLSX = {
         SPREADSHEET: XLSX,
         GOOGLE_DOCUMENT: "text/plain",
         "application/vnd.google-apps.drawing": "image/svg+xml",
@@ -125,7 +125,7 @@ class GoogleDriveUtils(object):
     @staticmethod
     def get_google_doc_mime_equivalence(gdoc_type, output_google_sheets_as_xlsx):
         if output_google_sheets_as_xlsx:
-            return GoogleDriveUtils.GOOGLE_DOC_MIME_EQUIVALENCE_MULTISHEETS.get(gdoc_type, GoogleDriveUtils.DEFAULT_MIME_TYPE)
+            return GoogleDriveUtils.GOOGLE_DOC_MIME_EQUIVALENCE_AS_XLSX.get(gdoc_type, GoogleDriveUtils.DEFAULT_MIME_TYPE)
         else:
             return GoogleDriveUtils.GOOGLE_DOC_MIME_EQUIVALENCE.get(gdoc_type, GoogleDriveUtils.DEFAULT_MIME_TYPE)
 
