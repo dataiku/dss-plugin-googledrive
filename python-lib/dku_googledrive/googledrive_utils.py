@@ -25,11 +25,18 @@ class GoogleDriveUtils(object):
     SPREADSHEET = "application/vnd.google-apps.spreadsheet"
     GOOGLE_DOCUMENT = "application/vnd.google-apps.document"
     CSV = "text/csv"
+    XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     GOOGLE_APPS = "google-apps"
     BINARY_STREAM = "binary/octet-stream"
     LIST_FIELDS = "nextPageToken, files(id, name, size, parents, mimeType, createdTime, modifiedTime)"
     GOOGLE_DOC_MIME_EQUIVALENCE = {
         SPREADSHEET: CSV,
+        GOOGLE_DOCUMENT: "text/plain",
+        "application/vnd.google-apps.drawing": "image/svg+xml",
+        "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    }
+    GOOGLE_DOC_MIME_EQUIVALENCE_AS_XLSX = {
+        SPREADSHEET: XLSX,
         GOOGLE_DOCUMENT: "text/plain",
         "application/vnd.google-apps.drawing": "image/svg+xml",
         "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -116,8 +123,11 @@ class GoogleDriveUtils(object):
         return file[GoogleDriveUtils.MIME_TYPE]
 
     @staticmethod
-    def get_google_doc_mime_equivalence(gdoc_type):
-        return GoogleDriveUtils.GOOGLE_DOC_MIME_EQUIVALENCE.get(gdoc_type, GoogleDriveUtils.DEFAULT_MIME_TYPE)
+    def get_google_doc_mime_equivalence(gdoc_type, output_google_sheets_as_xlsx):
+        if output_google_sheets_as_xlsx:
+            return GoogleDriveUtils.GOOGLE_DOC_MIME_EQUIVALENCE_AS_XLSX.get(gdoc_type, GoogleDriveUtils.DEFAULT_MIME_TYPE)
+        else:
+            return GoogleDriveUtils.GOOGLE_DOC_MIME_EQUIVALENCE.get(gdoc_type, GoogleDriveUtils.DEFAULT_MIME_TYPE)
 
     @staticmethod
     def file_size(item):

@@ -41,6 +41,12 @@
             "type": "STRING"
         },
         {
+            "name": "output_google_sheets_as_xlsx",
+            "label": "Read parameter",
+            "description": "Convert Google Sheets to .xlsx",
+            "type": "BOOLEAN"
+        },
+        {
             "name": "googledrive_write_as_google_doc",
             "label": "Write parameter",
             "description": "Use Google Sheets online format",

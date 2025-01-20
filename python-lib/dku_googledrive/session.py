@@ -41,6 +41,7 @@ class GoogleDriveSession():
         connection = plugin_config.get("googledrive_connection")
         self.auth_type = config.get("auth_type")
         self.write_as_google_doc = config.get("googledrive_write_as_google_doc")
+        self.output_google_sheets_as_xlsx = config.get("output_google_sheets_as_xlsx", False)
         self.nodir_mode = False  # Future development
 
         if self.auth_type == "oauth":
@@ -94,7 +95,10 @@ class GoogleDriveSession():
             document_type = gdu.get_google_doc_type(item)
             data = self.drive.files().export_media(
                 fileId=gdu.get_id(item),
-                mimeType=gdu.get_google_doc_mime_equivalence(document_type)
+                mimeType=gdu.get_google_doc_mime_equivalence(
+                    document_type,
+                    self.output_google_sheets_as_xlsx
+                )
             ).execute()
             file_handle = BytesIO()
             file_handle.write(data)
