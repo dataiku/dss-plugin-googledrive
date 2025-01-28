@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.2.0](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.2.0) - Fix release - 2025-01-28
+
+- Updated code-env descriptor for DSS 12
+
 ## [Version 1.1.5](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.1.5) - Fix release - 2025-01-17
 
 - Add option to import GoogleSheets document as xlsx instead of csv file, allowing import of multitab worksheets
