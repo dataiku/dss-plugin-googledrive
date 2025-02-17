@@ -1,0 +1,52 @@
+{
+    "meta" : {
+        "label": "Last modified based on GoogleSheet file ID",
+        "description": "This trigger is fired every time the last modified date of the remote Google Sheet document is more recent than the local dataset",
+        "icon": "fas fa-icon-file"
+    },
+    "params": [
+        {
+            "name": "auth_type",
+            "label": "Type of authentication",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "token",
+                    "label": "Access token"
+                },
+                {
+                    "value": "oauth",
+                    "label": "Google Single Sign On"
+                }
+            ]
+        },
+        {
+            "name": "googledrive_connection",
+            "label": "Google Drive Token",
+            "type": "PRESET",
+            "parameterSetId": "googledrive-set-id",
+            "visibilityCondition": "model.auth_type == 'token'"
+        },
+        {
+            "name": "oauth_credentials",
+            "label": "Google Single Sign On",
+            "type": "PRESET",
+            "parameterSetId": "oauth-credentials",
+            "visibilityCondition": "model.auth_type == 'oauth'"
+        },
+        {
+            "name": "google_sheets_file_id",
+            "label": "Google Sheets file ID",
+            "description": "ID of Google Sheet document to keep in sync",
+            "type": "STRING",
+            "mandatory": true
+        },
+        {
+            "name": "target_dataset",
+            "label": "Target dataset",
+            "description": "DSS dataset to keep in sync with the Google Sheet document",
+            "type": "DATASET",
+            "mandatory": true
+        }
+    ]
+}
