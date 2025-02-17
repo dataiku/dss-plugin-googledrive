@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.2.1](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.2.1) - Fix release - 2025-02-17
+
+- Add a scenario step to check on Google Sheets document update based on its by id
+
 ## [Version 1.2.0](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.2.0) - Fix release - 2025-01-28
 
 - Updated code-env descriptor for DSS 12
