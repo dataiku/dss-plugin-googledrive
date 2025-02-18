@@ -34,7 +34,7 @@ session = GoogleDriveSession(config, plugin_config)
 remote_file_last_modified = session.get_last_modified_by_file_id(google_sheet_file_id)
 remote_file_last_modified_epoch = 0
 try:
-    remote_file_last_modified_epoch = int(datetime.fromisoformat(remote_file_last_modified).timestamp()) * 1000
+    remote_file_last_modified_epoch = int(datetime.strptime(remote_file_last_modified, "%Y-%m-%dT%H:%M:%S.%f%z").timestamp()) * 1000
 except Exception as error_message:
     logger.error("Could not convert remote file last modified date: {}. Error {}".format(remote_file_last_modified,error_message ))
 
