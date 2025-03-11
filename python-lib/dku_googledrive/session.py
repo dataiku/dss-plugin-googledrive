@@ -90,6 +90,21 @@ class GoogleDriveSession():
             parent_ids = gdu.get_files_ids(files)
         return files[0]
 
+    def get_last_modified_by_file_id(self, file_id):
+        last_modified = None
+        logger.info("get_last_modified_by_file_id {}".format(file_id))
+        try:
+            last_modified = self.drive.files().get(fileId=file_id, fields="modifiedTime").execute().get("modifiedTime")
+            #  GET https://www.googleapis.com/drive/v3/files/<<file_id>>?fields=modifiedTime&alt=json
+        except Exception as error_message:
+            logger.error(
+                "Could not retrieve last modified time for file {}. Error: {}".format(
+                    file_id,
+                    error_message
+                )
+            )
+        return last_modified
+
     def googledrive_download(self, item, stream):
         if gdu.is_file_google_doc(item):
             document_type = gdu.get_google_doc_type(item)
