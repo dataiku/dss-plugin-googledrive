@@ -149,6 +149,8 @@ class GoogleDriveFSProvider(FSProvider):
 
         if item is None:
             no_directory_item = self.session.get_item_from_path(self.get_root_path())
+            if not no_directory_item:
+                return None
             query = gdu.query_parents_in(
                 [gdu.get_id(no_directory_item)],
                 name_contains=self.get_rel_path(path),
