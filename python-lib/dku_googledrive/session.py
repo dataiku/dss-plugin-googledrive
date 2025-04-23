@@ -260,21 +260,17 @@ class GoogleDriveSession():
         attempts = 0
         while attempts < self.max_attempts:
             try:
-                if len(item[gdu.PARENTS]) == 1 or parent_id is None:
-                    self.drive.files().delete(
+                body_value = {'trashed': True}
+                self.drive.files().update(
                         fileId=gdu.get_id(item),
+                        body=body_value,
                         supportsAllDrives=True
                     ).execute()
-                else:
-                    self.drive.files().update(
-                        fileId=gdu.get_id(item),
-                        removeParents=parent_id,
-                        supportsAllDrives=True
-                    ).execute()
+                return 1
             except HttpError as err:
                 logger.warn("HttpError={}".format(err))
                 if err.resp.status == 404:
-                    return
+                    return 0
                 self.handle_googledrive_errors(err, "delete")
             attempts = attempts + 1
             logger.info('googledrive_delete:attempts={} on {}'.format(attempts, item))
