@@ -1,5 +1,10 @@
 # Changelog
 
+## [Version 1.3.0](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.0) - Fix and feature release - 2025-04-23
+
+- Fix initial folder creation inside empty Google Drive folder
+- Move items to delete to trash
+
 ## [Version 1.2.0](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.2.0) - Fix release - 2025-01-28
 
 - Updated code-env descriptor for DSS 12
