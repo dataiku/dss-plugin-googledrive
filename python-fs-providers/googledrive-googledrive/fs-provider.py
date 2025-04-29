@@ -211,21 +211,8 @@ class GoogleDriveFSProvider(FSProvider):
         full_path = self.get_full_path(path)
         logger.info('delete_recursive:path="{}", full_path="{}"'.format(path, full_path))
         self.assert_path_is_not_root(full_path)
-        deleted_item_count = 0
         item = self.session.get_item_from_path(full_path)
-        if gdu.is_directory(item):
-            if item is None or gdu.PARENTS not in item:
-                return deleted_item_count
-            else:
-                query = gdu.query_parents_in([gdu.get_id(item)])
-                children_items = self.session.googledrive_list(query)
-                for child_item in children_items:
-                    self.session.googledrive_delete(child_item, parent_id=gdu.get_id(item))
-                    deleted_item_count = deleted_item_count + 1
-                self.session.googledrive_delete(item)
-        else:
-            self.session.googledrive_delete(item)
-            deleted_item_count = deleted_item_count + 1
+        deleted_item_count = self.session.googledrive_delete(item)
         return deleted_item_count
 
     def move(self, from_path, to_path):
