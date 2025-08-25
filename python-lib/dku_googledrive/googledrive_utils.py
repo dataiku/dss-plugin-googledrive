@@ -142,13 +142,13 @@ class GoogleDriveUtils(object):
     @staticmethod
     def check_path_format(path):
         special_names = [".", ".."]
-        if not all(c in string.printable for c in path):
+        if not path.isprintable():
             raise GoogleDriveUtilsError('The path contains non-printable char(s)')
         for element in path.split('/'):
             if len(element) > 1024:
                 raise GoogleDriveUtilsError('An element of the path is longer than the allowed 1024 characters')
             if element in special_names:
-                raise GoogleDriveUtilsError('Special name "{0}" is not allowed in a box.com path'.format(element))
+                raise GoogleDriveUtilsError('Special name "{0}" is not allowed in a Google Drive path'.format(element))
             if element.endswith(' '):
                 raise GoogleDriveUtilsError('An element of the path contains a trailing space')
             if element.startswith('.well-known/acme-challenge'):
