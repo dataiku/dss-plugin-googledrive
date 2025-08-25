@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.3.1](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.1) - Fix release - 2025-08-25
+
+- Fix for non ascii chars in file path 
+
 ## [Version 1.3.0](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.0) - Fix and feature release - 2025-04-23
 
 - Fix initial folder creation inside empty Google Drive folder
