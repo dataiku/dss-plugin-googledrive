@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.3.2](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.2) - Fix release - 2025-11-19
+
+- Fix reading files with titles containing a single quote
+
 ## [Version 1.3.1](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.1) - Fix release - 2025-08-25
 
 - Fix for non ascii chars in file path 
