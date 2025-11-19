@@ -168,9 +168,9 @@ class GoogleDriveUtils(object):
         if trashed is not None:
             query = query + ' and trashed=' + (GoogleDriveUtils.TRUE if trashed else GoogleDriveUtils.FALSE)
         if name is not None:
-            query = query + " and name='" + name + "'"
+            query = query + " and name='" + name.replace("'", "\\'") + "'"
         if name_contains is not None:
-            query = query + " and name contains '" + name_contains + "'"
+            query = query + " and name contains '" + name_contains.replace("'", "\\'") + "'"
         return query
 
     @staticmethod
