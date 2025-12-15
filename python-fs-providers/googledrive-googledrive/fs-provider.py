@@ -104,23 +104,27 @@ class GoogleDriveFSProvider(FSProvider):
         item = self.session.get_item_from_path(full_path)
 
         if item is None:
-            return {
+            ret = {
                 DSSConstants.FULL_PATH: None,
                 DSSConstants.EXISTS: False
             }
+            print("ALX:ret1={}".format(ret))
+            return ret
         if gdu.is_file(item):
-            return {
+            ret = {
                 DSSConstants.FULL_PATH: self.get_normalized_path(path),
                 DSSConstants.EXISTS: True,
                 DSSConstants.DIRECTORY: False,
                 DSSConstants.SIZE: gdu.file_size(item),
                 DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
             }
+            print("ALX:ret2={}".format(ret))
+            return ret
         children = []
 
         files = self.session.directory(item, root_path=self.get_rel_path(full_path))
         for file in files:
-            sub_path = self.get_normalized_path(os.path.join(path, gdu.get_name(file)))
+            sub_path = self.get_normalized_path(os.path.join(path, gdu.get_name(file).replace("/", "╱")))
             children.append({
                 DSSConstants.FULL_PATH: sub_path,
                 DSSConstants.EXISTS: True,
@@ -128,13 +132,15 @@ class GoogleDriveFSProvider(FSProvider):
                 DSSConstants.SIZE: gdu.file_size(file),
                 DSSConstants.LAST_MODIFIED: gdu.get_last_modified(file)
             })
-        return {
+        ret = {
             DSSConstants.FULL_PATH: self.get_normalized_path(path),
             DSSConstants.EXISTS: True,
             DSSConstants.DIRECTORY: True,
             DSSConstants.CHILDREN: children,
             DSSConstants.LAST_MODIFIED: gdu.get_last_modified(item)
         }
+        print("ALX:ret3={}".format(ret))
+        return ret
 
     def enumerate(self, path, first_non_empty):
         """

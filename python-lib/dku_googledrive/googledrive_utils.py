@@ -46,9 +46,14 @@ class GoogleDriveUtils(object):
     @staticmethod
     def split_path(path_and_file):
         path, file = os.path.split(path_and_file)
+        print("ALX:path={}, file={}".format(path, file))
+        # path = path.replace("╱", "/")
         folders = []
         while 1:
             path, folder = os.path.split(path)
+            folder = folder.replace("╱", "/")
+            path = path.replace("╱", "/")
+            print("ALX:folder={}, path={}".format(folder, path))
             if folder != '':
                 folders.append(folder)
             else:
