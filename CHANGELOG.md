@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.3.3](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.3) - Fix release - 2026-01-07
+
+- Fix issue when using `List Contents` recipe on partitioned folders
+
 ## [Version 1.3.2](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.2) - Fix release - 2025-11-19
 
 - Fix reading files with titles containing a single quote
