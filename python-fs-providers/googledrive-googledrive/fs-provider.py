@@ -196,7 +196,7 @@ class GoogleDriveFSProvider(FSProvider):
                 paths.extend(self.list_recursive(path + '/' + gdu.get_name(child), child, first_non_empty))
             else:
                 paths.append({
-                    DSSConstants.PATH: "/" + path.strip('/') + '/' + gdu.get_name(child),
+                    DSSConstants.PATH: self.get_normalized_path(path.strip('/') + '/' + gdu.get_name(child)),
                     DSSConstants.SIZE: gdu.file_size(child),
                     DSSConstants.LAST_MODIFIED: gdu.get_last_modified(child)
                 })
