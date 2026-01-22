@@ -26,6 +26,7 @@ class GoogleDriveUtils(object):
     GOOGLE_DOCUMENT = "application/vnd.google-apps.document"
     CSV = "text/csv"
     XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     GOOGLE_APPS = "google-apps"
     BINARY_STREAM = "binary/octet-stream"
     LIST_FIELDS = "nextPageToken, files(id, name, size, parents, mimeType, createdTime, modifiedTime)"
@@ -37,7 +38,7 @@ class GoogleDriveUtils(object):
     }
     GOOGLE_DOC_MIME_EQUIVALENCE_AS_XLSX = {
         SPREADSHEET: XLSX,
-        GOOGLE_DOCUMENT: "text/plain",
+        GOOGLE_DOCUMENT: DOCX,
         "application/vnd.google-apps.drawing": "image/svg+xml",
         "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     }
