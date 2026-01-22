@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.3.4](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.4) - Fix release - 2026-01-22
+
+- Add option to import GoogleDocs documents as docx instead of plain text files
+
 ## [Version 1.3.3](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.3) - Fix release - 2026-01-07
 
 - Fix issue when using `List Contents` recipe on partitioned folders
