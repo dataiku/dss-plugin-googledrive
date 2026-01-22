@@ -43,7 +43,7 @@
         {
             "name": "output_google_sheets_as_xlsx",
             "label": "Read parameter",
-            "description": "Convert Google Sheets to .xlsx",
+            "description": "Convert Google documents to .xlsx / .docx",
             "type": "BOOLEAN"
         },
         {
