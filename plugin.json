@@ -1,15 +1,19 @@
 {
-    "id": "googledrive",
-    "version": "1.3.4",
-    "meta": {
-        "label": "Google Drive",
-        "description": "Read and write data from/to your Google Drive account",
-        "author": "Dataiku (Alex Bourret)",
-        "icon": "icon-file",
-        "category": "Productivity",
-        "tags": ["Google", "Connector", "Productivity"],
-        "url": "https://www.dataiku.com/product/plugins/google-drive/",
-        "licenseInfo": "Apache Software License",
-        "supportLevel": "NOT_SUPPORTED"
-    }
+  "id": "googledrive",
+  "version": "1.4.0",
+  "meta": {
+    "label": "Google Drive",
+    "description": "Read and write data from/to your Google Drive account",
+    "author": "Dataiku (Alex Bourret)",
+    "icon": "icon-file",
+    "category": "Productivity",
+    "tags": [
+      "Google",
+      "Connector",
+      "Productivity"
+    ],
+    "url": "https://www.dataiku.com/product/plugins/google-drive/",
+    "licenseInfo": "Apache Software License",
+    "supportLevel": "NOT_SUPPORTED"
+  }
 }
