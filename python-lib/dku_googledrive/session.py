@@ -50,7 +50,7 @@ class GoogleDriveSession():
             http_auth = credentials.authorize(Http())
         else:
             credentials_dict = json.loads(connection['credentials'])
-            if not isinstance(credentials_dict):
+            if not isinstance(credentials_dict, dict):
                 raise GoogleDriveSessionError("The credential is not in the correct format")
             credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scopes)
             http_auth = credentials.authorize(Http())
