@@ -49,9 +49,11 @@ class GoogleDriveSession():
             credentials = AccessTokenCredentials(self.access_token, "dss-googledrive-plugin/2.0")
             http_auth = credentials.authorize(Http())
         else:
-            credentials_dict = json.loads(connection['credentials'])
-            if not isinstance(credentials_dict, dict):
-                raise GoogleDriveSessionError("The credential is not in the correct format")
+            try:
+                credentials_dict = json.loads(connection.get('credentials'))
+            except Exception as error:
+                logger.error("The credentials are not in the correct format:{}".format(error))
+                raise GoogleDriveSessionError("The credentials are not in the correct format")
             credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scopes)
             http_auth = credentials.authorize(Http())
         self.root_id = config.get("googledrive_root_id")
