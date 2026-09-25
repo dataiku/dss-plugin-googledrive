@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.4.1](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.4.1 - Security release - 2026-09-25
+
+- Fix security issue on access token parsing
+
 ## Version 1.4.0 - Enhancement release - 2026-09-02
 
 - Added supported Python versions: 3.12, 3.13, 3.14
