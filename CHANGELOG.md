@@ -1,5 +1,9 @@
 # Changelog
 
+## [Version 1.3.5](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.5) - Security release - 2026-09-25
+
+- Fix security issue on access token parsing
+
 ## [Version 1.3.4](https://github.com/dataiku/dss-plugin-googledrive/releases/tag/v1.3.4) - Fix release - 2026-07-02
 
 - Fix missing pkg_ressources module
